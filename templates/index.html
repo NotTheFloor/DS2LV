@@ -6,9 +6,31 @@
     <title>File Upload</title>
 </head>
 <body>
-    <form action="/" method="post" enctype="multipart/form-data">
+    <form id="uploadForm" action="/" method="post" enctype="multipart/form-data">
         <input type="file" name="file" multiple>
         <button type="submit">Upload</button>
     </form>
+    <!-- Pending Uploads -->
+    <div>
+        <h2>Pending Uploads</h2>
+        <ul id="pendingUploads">
+        </ul>
+    </div>
+
+    <!-- Uploaded Files -->
+    <div>
+        <h2>Uploaded Files</h2>
+        <ul id="uploadedFiles">
+        </ul>
+    </div>
+    <div>
+        <h2>Processed Files</h2>
+        <ul id="processedFiles">
+        </ul>
+    </div>
+    <button id="process">Process</button>
+    <button id="downloadButton" disabled>Download</button>
+    <div id="processStatus"></div>
+    <script src="{{ url_for('static', filename='scripts/index.js') }}"></script>
 </body>
 </html>
