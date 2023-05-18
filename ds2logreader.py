@@ -50,11 +50,15 @@ class DS2LogReader:
                 self.process_file_list()
 
     def process_file(self, filepath, debug=True):
+        print(self.batch_start_time)
         if not self.batch_start_time:
+            print("in no batch start")
             self.batch_start_time = datetime.now()
             if debug:
                 print(f"Creating output folder")
             self.create_output_folders()
+
+        print("after no batch start")
 
         if debug:
             print(f"Processing file {filepath}")
@@ -241,23 +245,15 @@ class DS2LogReader:
 
 def get_unique_files(dir):
     unfiltered_files = set(os.listdir(dir))
-    print("Unfiltered files")
-    print(json.dumps(list(unfiltered_files), indent=2))
     filtered_files = []
 
     for file in unfiltered_files:
-        print(f"Check: {file}")
         if os.path.isdir(os.path.join(dir, file)):
-            print(f"{file} is a directory")
             filtered_files += [
                 os.path.join(file, f)
                 for f in os.listdir(os.path.join(dir, file))
             ]
         else:
-            print(f"{file} is NOT a directory")
             filtered_files.append(file)
-
-    print("Filtered files")
-    print(json.dumps(list(filtered_files), indent=2))
 
     return set(filtered_files)

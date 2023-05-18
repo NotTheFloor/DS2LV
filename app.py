@@ -28,10 +28,6 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["ARCHIVE_FOLDER"] = ARCHIVE_FOLDER
 app.config["OUTPUT_TEMP_FOLDER"] = OUTPUT_TEMP_FOLDER
 
-ds2 = ds2logreader.DS2LogReader(
-    output_folder=app.config["OUTPUT_TEMP_FOLDER"], auto_run=False
-)
-
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -46,6 +42,9 @@ def index():
 
 def process_files_background():
     with app.app_context():
+        ds2 = ds2logreader.DS2LogReader(
+            output_folder=app.config["OUTPUT_TEMP_FOLDER"], auto_run=False
+        )
         try:
             for filename in os.listdir(app.config["UPLOAD_FOLDER"]):
                 if filename[0] == ".":
@@ -140,6 +139,13 @@ def delete_file():
             return "File not found", 404
     else:
         return "Filename not provided", 400
+
+
+@app.route("/reset", methods=["POST"])
+def reset_files():
+    shutil.rmtree(app.config["OUTPUT_TEMP_FOLDER"])
+    os.makedirs(app.config["OUTPUT_TEMP_FOLDER"])
+    return "", 204
 
 
 if __name__ == "__main__":

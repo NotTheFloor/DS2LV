@@ -85,5 +85,28 @@ document.addEventListener("DOMContentLoaded", (event) => {
     downloadButton.addEventListener('click', (event) => {
         event.preventDefault();
         window.location.href = "/download";
+
+        // Remove all items from the 'Processed Files' list
+        while (processedFilesList.firstChild) {
+            processedFilesList.removeChild(processedFilesList.firstChild);
+        }
+
+        // Remove all items from the 'Files' list
+        while (filesList.firstChild) {
+            filesList.removeChild(filesList.firstChild);
+        }
+
+        // Request the server to reset the files and folders
+        fetch("/reset", { method: "POST" })
+            .then((response) => {
+                if (response.ok) {
+                    console.log("Reset successful.");
+                } else {
+                    console.error("Error resetting files and folders, status code: " + response.status);
+                }
+            })
+            .catch((error) => {
+                console.error("Error:", error);
+            });
     });
 });
