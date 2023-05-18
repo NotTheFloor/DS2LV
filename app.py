@@ -54,11 +54,13 @@ def process_files_background():
 
                 file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
                 print(f"Processing file {file_path}")
-                before_files = set(
-                    os.listdir(app.config["OUTPUT_TEMP_FOLDER"])
+                before_files = ds2logreader.get_unique_files(
+                    app.config["OUTPUT_TEMP_FOLDER"]
                 )
                 result = ds2.process_file(file_path)
-                after_files = set(os.listdir(app.config["OUTPUT_TEMP_FOLDER"]))
+                after_files = ds2logreader.get_unique_files(
+                    app.config["OUTPUT_TEMP_FOLDER"]
+                )
                 print("Done processing file. Result: '" + result + "'")
                 output_files = list(after_files - before_files)
 

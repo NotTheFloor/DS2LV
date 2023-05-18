@@ -1,5 +1,6 @@
 import csv
 import os
+import json
 from datetime import datetime, timedelta
 
 INPUT_DATE_FORMAT = "%Y-%m-%d_%H.%M.%S"
@@ -125,6 +126,7 @@ class DS2LogReader:
                         "set_start": None,
                     }
             if current_set:
+                print("**** ADDING")
                 filtered_sets.append((meta_data, current_set))
 
         if debug:
@@ -235,3 +237,27 @@ class DS2LogReader:
                 quit()
 
             self.process_file(filename)
+
+
+def get_unique_files(dir):
+    unfiltered_files = set(os.listdir(dir))
+    print("Unfiltered files")
+    print(json.dumps(list(unfiltered_files), indent=2))
+    filtered_files = []
+
+    for file in unfiltered_files:
+        print(f"Check: {file}")
+        if os.path.isdir(os.path.join(dir, file)):
+            print(f"{file} is a directory")
+            filtered_files += [
+                os.path.join(file, f)
+                for f in os.listdir(os.path.join(dir, file))
+            ]
+        else:
+            print(f"{file} is NOT a directory")
+            filtered_files.append(file)
+
+    print("Filtered files")
+    print(json.dumps(list(filtered_files), indent=2))
+
+    return set(filtered_files)
