@@ -9,8 +9,6 @@ from flask import (
     abort,
     session,
 )
-
-print("Confirming change")
 from flask_sse import sse
 import dotenv
 import os, shutil, threading, uuid
@@ -29,8 +27,6 @@ assert app.secret_key is not None
 app.config["REDIS_URL"] = os.getenv("REDIS_URL")
 
 is_prod = os.getenv("IS_PROD")
-debug_log = True
-
 
 app.register_blueprint(sse, url_prefix="/stream")
 
@@ -45,20 +41,9 @@ app.config["ARCHIVE_FOLDER"] = ARCHIVE_FOLDER
 app.config["OUTPUT_TEMP_FOLDER"] = OUTPUT_TEMP_FOLDER
 app.config["FINAL_FOLDER"] = FINAL_FOLDER
 
-if debug_log:
-    print(f"Debug log is set to true")
-    print(f"REDIS_URL: {app.config['REDIS_URL']}")
-    print(f"FILE_ROOT: {file_root}")
-    print(f"UPLOAD_FOLDER: {UPLOAD_FOLDER}")
-    print(f"ARCHIVE_FOLDER: {ARCHIVE_FOLDER}")
-    print(f"OUTPUT_TEMP_FOLDER: {OUTPUT_TEMP_FOLDER}")
-    print(f"FINAL_FOLDER: {FINAL_FOLDER}")
-
 
 @app.before_request
 def create_session():
-    if debug_log:
-        print(f"Creating session")
     # Check if session is not initialized
     if "session_id" not in session:
         # Generate a unique id for the session
@@ -87,12 +72,7 @@ def create_session():
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        if debug_log:
-            print(f"Attempting to save file from POST")
-
         if "session_id" not in session:
-            if debug_log:
-                print(f"Creating session")
             # Generate a unique id for the session
             session_id = str(uuid.uuid4())
             # Save the session id in flask's session
@@ -117,8 +97,6 @@ def index():
             final_dir = os.path.join(app.config["FINAL_FOLDER"], session_id)
             os.makedirs(final_dir, exist_ok=True)
         else:
-            if debug_log:
-                print(f"Session already exists")
             session_id = session["session_id"]
 
         session_id = session["session_id"]
@@ -132,58 +110,39 @@ def index():
 
 
 def process_files_background(session_id):
-    if debug_log:
-        print(f"Processing file in backgroung")
     with app.app_context():
         output_dir = os.path.join(app.config["OUTPUT_TEMP_FOLDER"], session_id)
         upload_dir = os.path.join(app.config["UPLOAD_FOLDER"], session_id)
         archive_dir = os.path.join(app.config["ARCHIVE_FOLDER"], session_id)
         final_dir = os.path.join(app.config["FINAL_FOLDER"], session_id)
 
-        if debug_log:
-            print(f"Creating DS2 Log Reader")
         ds2 = ds2logreader.DS2LogReader(
             output_folder=output_dir, auto_run=False
         )
-        if debug_log:
-            print(f"DS2 Log Reader created")
+
         try:
             for filename in os.listdir(upload_dir):
                 if filename[0] == ".":
                     print(f"Skipping file {filename}")
                     continue
 
-                if debug_log:
-                    print(f"Processing file {filename}")
-
                 file_path = os.path.join(upload_dir, filename)
-                print(f"Processing file {file_path}")
                 before_files = ds2logreader.get_unique_files(output_dir)
                 result = ds2.process_file(file_path)
                 after_files = ds2logreader.get_unique_files(output_dir)
-                print("Done processing file. Result: '" + result + "'")
                 output_files = list(after_files - before_files)
 
                 if result != "":
-                    if debug_log:
-                        print(
-                            f"Attempting publish of error {filename}: {result}"
-                        )
                     sse.publish(
                         {"message": f"Error processing {filename}: {result}"},
                         type="process_update",
                     )
-                    if debug_log:
-                        print(f"Publish complete")
                     continue
 
-                print("Moving file")
                 shutil.move(
                     file_path,
                     os.path.join(archive_dir, filename),
                 )
-                # Assuming process_file method generates output in OUTPUT_TEMP_FOLDER
-                print("File moved")
 
                 sse.publish(
                     {
@@ -194,12 +153,7 @@ def process_files_background(session_id):
                     type="process_update",
                 )
 
-            print("Making archive")
             shutil.make_archive(f"{final_dir}/output", "zip", output_dir)
-            print("Archive made")
-
-            # # Delete the output_temp directory
-            # shutil.rmtree(app.config["OUTPUT_TEMP_FOLDER"])
 
             sse.publish(
                 {"message": "Processing complete", "status": "complete"},
@@ -214,8 +168,6 @@ def process_files_background(session_id):
 def process_files():
     session_id = session.get("session_id")
     if is_prod:
-        if debug_log:
-            print("Running as worker")
         process_files_background(session_id)
     else:
         threading.Thread(
@@ -229,8 +181,6 @@ from flask import send_from_directory
 
 @app.route("/download", methods=["GET"])
 def download_file():
-    if debug_log:
-        print(f"Attempting to download file")
     session_id = session["session_id"]
     final_dir = os.path.join(app.config["FINAL_FOLDER"], session_id)
     try:
@@ -247,7 +197,6 @@ def download_file():
 def delete_file():
     session_id = session["session_id"]
     upload_dir = os.path.join(app.config["UPLOAD_FOLDER"], session_id)
-
     data = request.get_json()
     filename = data.get("filename")
     if filename:
@@ -267,10 +216,9 @@ def reset_files():
     output_dir = os.path.join(app.config["OUTPUT_TEMP_FOLDER"], session_id)
 
     shutil.rmtree(output_dir)
-    os.makedirs(output_dir)
+    # os.makedirs(output_dir)
     return "", 204
 
 
 if __name__ == "__main__":
-    print("Running App")
     app.run(debug=True)

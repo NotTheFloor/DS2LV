@@ -49,7 +49,7 @@ class DS2LogReader:
             if auto_run:
                 self.process_file_list()
 
-    def process_file(self, filepath, debug=True):
+    def process_file(self, filepath, debug=False):
         print(self.batch_start_time)
         if not self.batch_start_time:
             print("in no batch start")
