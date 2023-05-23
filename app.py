@@ -192,6 +192,8 @@ from flask import send_from_directory
 
 @app.route("/download", methods=["GET"])
 def download_file():
+    if debug_log:
+        print(f"Attempting to download file")
     session_id = session["session_id"]
     final_dir = os.path.join(app.config["FINAL_FOLDER"], session_id)
     try:
