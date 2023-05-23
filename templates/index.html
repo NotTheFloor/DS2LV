@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Upload</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/index.css') }}">
 </head>
 <body>
+    <h1 id="title-header">DS2 Log Processor</h1>
     <form id="uploadForm" action="/" method="post" enctype="multipart/form-data">
         <input type="file" name="file" multiple>
     </form>
