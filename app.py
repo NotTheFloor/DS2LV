@@ -198,4 +198,5 @@ def reset_files():
 
 
 if __name__ == "__main__":
+    print("Running App")
     app.run(debug=False)
