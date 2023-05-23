@@ -28,10 +28,12 @@ app.config["REDIS_URL"] = "redis://localhost"
 
 app.register_blueprint(sse, url_prefix="/stream")
 
-UPLOAD_FOLDER = "uploads"
-ARCHIVE_FOLDER = "archive"
-OUTPUT_TEMP_FOLDER = "output_temp"
-FINAL_FOLDER = "final"
+file_root = os.getenv("FILE_ROOT")
+
+UPLOAD_FOLDER = os.path.join(file_root, "uploads")
+ARCHIVE_FOLDER = os.path.join(file_root, "archive")
+OUTPUT_TEMP_FOLDER = os.path.join(file_root, "output_temp")
+FINAL_FOLDER = os.path.join(file_root, "final")
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["ARCHIVE_FOLDER"] = ARCHIVE_FOLDER
 app.config["OUTPUT_TEMP_FOLDER"] = OUTPUT_TEMP_FOLDER
@@ -196,4 +198,4 @@ def reset_files():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)
