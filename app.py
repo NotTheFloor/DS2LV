@@ -9,6 +9,8 @@ from flask import (
     abort,
     session,
 )
+
+print("Confirming change")
 from flask_sse import sse
 import dotenv
 import os, shutil, threading, uuid
