@@ -28,7 +28,7 @@ assert app.secret_key is not None
 # Replace "redis://localhost:6379" with your Redis server's URL if it's not on localhost
 app.config["REDIS_URL"] = os.getenv("REDIS_URL")
 
-# is_prod = os.getenv("IS_PROD")
+is_prod = os.getenv("IS_PROD")
 debug_log = True
 
 
@@ -89,6 +89,38 @@ def index():
     if request.method == "POST":
         if debug_log:
             print(f"Attempting to save file from POST")
+
+        if "session_id" not in session:
+            if debug_log:
+                print(f"Creating session")
+            # Generate a unique id for the session
+            session_id = str(uuid.uuid4())
+            # Save the session id in flask's session
+            session["session_id"] = session_id
+            # Create a new directory to store this user's files
+            upload_dir = os.path.join(app.config["UPLOAD_FOLDER"], session_id)
+            os.makedirs(upload_dir, exist_ok=True)
+
+            # Similar for the output temp directory
+            output_temp_dir = os.path.join(
+                app.config["OUTPUT_TEMP_FOLDER"], session_id
+            )
+            os.makedirs(output_temp_dir, exist_ok=True)
+
+            # Similar for the archive directory
+            archive_dir = os.path.join(
+                app.config["ARCHIVE_FOLDER"], session_id
+            )
+            os.makedirs(archive_dir, exist_ok=True)
+
+            # Similar for the final directory
+            final_dir = os.path.join(app.config["FINAL_FOLDER"], session_id)
+            os.makedirs(final_dir, exist_ok=True)
+        else:
+            if debug_log:
+                print(f"Session already exists")
+            session_id = session["session_id"]
+
         session_id = session["session_id"]
         upload_dir = os.path.join(app.config["UPLOAD_FOLDER"], session_id)
         for file in request.files.getlist("file"):
@@ -181,9 +213,14 @@ def process_files_background(session_id):
 @app.route("/process", methods=["POST"])
 def process_files():
     session_id = session.get("session_id")
-    threading.Thread(
-        target=process_files_background, args=(session_id,)
-    ).start()
+    if is_prod:
+        if debug_log:
+            print("Running as worker")
+        process_files_background(session_id)
+    else:
+        threading.Thread(
+            target=process_files_background, args=(session_id,)
+        ).start()
     return Response("Processing started.", 202)
 
 
