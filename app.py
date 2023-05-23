@@ -26,7 +26,10 @@ assert app.secret_key is not None
 
 # Add the Redis URL to your application's configuration
 # Replace "redis://localhost:6379" with your Redis server's URL if it's not on localhost
-app.config["REDIS_URL"] = "redis://localhost"
+app.config["REDIS_URL"] = os.getenv("REDIS_URL")
+
+# is_prod = os.getenv("IS_PROD")
+
 
 app.register_blueprint(sse, url_prefix="/stream")
 
