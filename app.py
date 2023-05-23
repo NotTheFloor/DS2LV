@@ -29,6 +29,7 @@ assert app.secret_key is not None
 app.config["REDIS_URL"] = os.getenv("REDIS_URL")
 
 # is_prod = os.getenv("IS_PROD")
+debug_log = True
 
 
 app.register_blueprint(sse, url_prefix="/stream")
@@ -44,9 +45,20 @@ app.config["ARCHIVE_FOLDER"] = ARCHIVE_FOLDER
 app.config["OUTPUT_TEMP_FOLDER"] = OUTPUT_TEMP_FOLDER
 app.config["FINAL_FOLDER"] = FINAL_FOLDER
 
+if debug_log:
+    print(f"Debug log is set to true")
+    print(f"REDIS_URL: {app.config['REDIS_URL']}")
+    print(f"FILE_ROOT: {file_root}")
+    print(f"UPLOAD_FOLDER: {UPLOAD_FOLDER}")
+    print(f"ARCHIVE_FOLDER: {ARCHIVE_FOLDER}")
+    print(f"OUTPUT_TEMP_FOLDER: {OUTPUT_TEMP_FOLDER}")
+    print(f"FINAL_FOLDER: {FINAL_FOLDER}")
+
 
 @app.before_request
 def create_session():
+    if debug_log:
+        print(f"Creating session")
     # Check if session is not initialized
     if "session_id" not in session:
         # Generate a unique id for the session
@@ -75,6 +87,8 @@ def create_session():
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
+        if debug_log:
+            print(f"Attempting to save file from POST")
         session_id = session["session_id"]
         upload_dir = os.path.join(app.config["UPLOAD_FOLDER"], session_id)
         for file in request.files.getlist("file"):
@@ -86,19 +100,29 @@ def index():
 
 
 def process_files_background(session_id):
+    if debug_log:
+        print(f"Processing file in backgroung")
     with app.app_context():
         output_dir = os.path.join(app.config["OUTPUT_TEMP_FOLDER"], session_id)
         upload_dir = os.path.join(app.config["UPLOAD_FOLDER"], session_id)
         archive_dir = os.path.join(app.config["ARCHIVE_FOLDER"], session_id)
         final_dir = os.path.join(app.config["FINAL_FOLDER"], session_id)
+
+        if debug_log:
+            print(f"Creating DS2 Log Reader")
         ds2 = ds2logreader.DS2LogReader(
             output_folder=output_dir, auto_run=False
         )
+        if debug_log:
+            print(f"DS2 Log Reader created")
         try:
             for filename in os.listdir(upload_dir):
                 if filename[0] == ".":
                     print(f"Skipping file {filename}")
                     continue
+
+                if debug_log:
+                    print(f"Processing file {filename}")
 
                 file_path = os.path.join(upload_dir, filename)
                 print(f"Processing file {file_path}")
@@ -109,10 +133,16 @@ def process_files_background(session_id):
                 output_files = list(after_files - before_files)
 
                 if result != "":
+                    if debug_log:
+                        print(
+                            f"Attempting publish of error {filename}: {result}"
+                        )
                     sse.publish(
                         {"message": f"Error processing {filename}: {result}"},
                         type="process_update",
                     )
+                    if debug_log:
+                        print(f"Publish complete")
                     continue
 
                 print("Moving file")
@@ -204,4 +234,4 @@ def reset_files():
 
 if __name__ == "__main__":
     print("Running App")
-    app.run(debug=False)
+    app.run(debug=True)
