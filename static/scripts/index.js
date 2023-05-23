@@ -41,38 +41,40 @@ document.addEventListener("DOMContentLoaded", (event) => {
     processButton.addEventListener("click", (event) => {
         event.preventDefault();
 
+        var source = new EventSource("/stream");
+        source.addEventListener('process_update', function (event) {
+            console.log(event.data); // Log all messages for debugging
+            var data = JSON.parse(event.data);
+            if (data.message) {
+                document.getElementById("processStatus").innerText = data.message;
+            }
+            if (data.status === "fileComplete") {
+                // Remove the li item for the processed file
+                Array.from(filesList.children).forEach((li) => {
+                    if (li.textContent.startsWith(data.filename)) {
+                        li.remove();
+                    }
+                });
+
+                // Create new li items for the output
+                // files and add them to the 'Processed Files' list
+                data.outputFiles.forEach((filename) => {
+                    const li = document.createElement("li");
+                    li.textContent = filename;
+                    processedFilesList.appendChild(li);
+                });
+            }
+            if (data.status === "complete") {
+                document.getElementById("downloadButton").disabled = false;
+                source.close();
+            }
+        }, false);
+
         fetch("/process", { method: "POST" })
             .then((response) => {
                 if (response.status === 202) {
                     // Initiate Server-Sent Events
-                    var source = new EventSource("/stream");
-                    source.addEventListener('process_update', function (event) {
-                        console.log(event.data); // Log all messages for debugging
-                        var data = JSON.parse(event.data);
-                        if (data.message) {
-                            document.getElementById("processStatus").innerText = data.message;
-                        }
-                        if (data.status === "fileComplete") {
-                            // Remove the li item for the processed file
-                            Array.from(filesList.children).forEach((li) => {
-                                if (li.textContent.startsWith(data.filename)) {
-                                    li.remove();
-                                }
-                            });
-
-                            // Create new li items for the output
-                            // files and add them to the 'Processed Files' list
-                            data.outputFiles.forEach((filename) => {
-                                const li = document.createElement("li");
-                                li.textContent = filename;
-                                processedFilesList.appendChild(li);
-                            });
-                        }
-                        if (data.status === "complete") {
-                            document.getElementById("downloadButton").disabled = false;
-                            source.close();
-                        }
-                    }, false);
+                    console.log("response");
                 } else {
                     console.error(
                         "Error starting processing, status code: " + response.status
