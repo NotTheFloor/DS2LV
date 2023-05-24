@@ -85,8 +85,13 @@ def index():
                 "https://www.google.com/recaptcha/api/siteverify", data=data
             )
             google_response_json = google_response.json()
+            print("Valid reCAPTCHA response")
             if not google_response_json["success"]:
+                print("Invalid reCAPTCHA response")
                 return "Invalid reCAPTCHA. Please try again.", 400
+        else:
+            print("No reCAPTCHA response")
+            return "No reCAPTCHA. Please try again.", 400
 
         if "session_id" not in session:
             # Generate a unique id for the session
