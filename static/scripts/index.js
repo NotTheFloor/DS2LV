@@ -31,6 +31,20 @@ document.addEventListener("DOMContentLoaded", (event) => {
             // Upload the file
             const formData = new FormData();
             formData.append("file", files[i]);
+
+            // Include g-recaptcha-response in your request
+            const recaptchaResponse = grecaptcha.getResponse();
+
+            if (recaptchaResponse.length === 0) {
+                document.getElementById("fileUploadError").innerText = "Please complete the reCAPTCHA";
+                document.getElementById("fileUploadError").hidden = false;
+                return;
+            }
+
+            if (recaptchaResponse) {
+                formData.append("g-recaptcha-response", recaptchaResponse);
+            }
+
             fetch("/", {
                 method: "POST",
                 body: formData,
