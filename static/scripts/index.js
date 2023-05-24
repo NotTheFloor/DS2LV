@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const fileInput = document.querySelector('input[type="file"]');
     const filesList = document.getElementById("files");
     const processedFilesList = document.getElementById("processedFiles");
+    let openProcessing = 0;
 
     // Handle file selection
     fileInput.addEventListener("change", function (event) {
@@ -13,6 +14,17 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
             // Create an li item with "Uploading" status
             const li = document.createElement("li");
+
+            if (!filename.endsWith(".csv")) {
+                li.textContent = filename + " (Error: CSV extensions only)";
+                li.style.color = "#FFAAAA";
+                filesList.appendChild(li);
+                continue;
+            }
+
+            openProcessing += 1;
+            processButton.disabled = true;
+
             li.textContent = filename + " (Uploading)";
             filesList.appendChild(li);
 
@@ -26,6 +38,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 .then((response) => {
                     if (response.ok) {
                         li.textContent = filename + " (Complete)";
+                        openProcessing -= 1;
+
+                        if (openProcessing <= 0) processButton.disabled = false;
                     } else {
                         console.error("Error uploading file, status code: " + response.status);
                         li.textContent = filename + " (Error)";
@@ -43,7 +58,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
         var source = new EventSource("/stream");
         source.addEventListener('process_update', function (event) {
-            console.log(event.data); // Log all messages for debugging
             var data = JSON.parse(event.data);
             if (data.message) {
                 document.getElementById("processStatus").innerText = data.message;
@@ -65,7 +79,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 });
             }
             if (data.status === "complete") {
-                document.getElementById("downloadButton").disabled = false;
+                downloadButton.disabled = false;
+                processButton.disabled = true;
                 source.close();
             }
         }, false);
@@ -74,7 +89,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
             .then((response) => {
                 if (response.status === 202) {
                     // Initiate Server-Sent Events
-                    console.log("response");
+                    console.log("");
                 } else {
                     console.error(
                         "Error starting processing, status code: " + response.status
@@ -97,6 +112,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
         while (filesList.firstChild) {
             filesList.removeChild(filesList.firstChild);
         }
+
+        // Disable Download button
+        downloadButton.disabled = true;
+        document.getElementById("uploadFileInput").value = "";
 
         // Request the server to reset the files and folders
         fetch("/reset", { method: "POST" })

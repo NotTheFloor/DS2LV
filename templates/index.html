@@ -9,7 +9,7 @@
 <body>
     <h1 id="title-header">DS2 Log Processor</h1>
     <form id="uploadForm" action="/" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" multiple>
+        <input id="uploadFileInput" type="file" name="file" multiple>
     </form>
     <!-- Uploaded Files -->
     <div>
@@ -22,7 +22,7 @@
         <ul id="processedFiles">
         </ul>
     </div>
-    <button id="process">Process</button>
+    <button id="process" disabled>Process</button>
     <button id="downloadButton" disabled>Download</button>
     <div id="processStatus"></div>
     <script src="{{ url_for('static', filename='scripts/index.js') }}"></script>

@@ -8,6 +8,7 @@ from flask import (
     send_from_directory,
     abort,
     session,
+    send_from_directory,
 )
 from flask_sse import sse
 import dotenv
@@ -98,6 +99,10 @@ def index():
             os.makedirs(final_dir, exist_ok=True)
         else:
             session_id = session["session_id"]
+            output_temp_dir = os.path.join(
+                app.config["OUTPUT_TEMP_FOLDER"], session_id
+            )
+            os.makedirs(output_temp_dir, exist_ok=True)
 
         session_id = session["session_id"]
         upload_dir = os.path.join(app.config["UPLOAD_FOLDER"], session_id)
@@ -116,9 +121,7 @@ def process_files_background(session_id):
         archive_dir = os.path.join(app.config["ARCHIVE_FOLDER"], session_id)
         final_dir = os.path.join(app.config["FINAL_FOLDER"], session_id)
 
-        ds2 = ds2logreader.DS2LogReader(
-            output_folder=output_dir, auto_run=False
-        )
+        ds2 = ds2logreader.DS2LogReader(output_folder=output_dir)
 
         try:
             for filename in os.listdir(upload_dir):
@@ -174,9 +177,6 @@ def process_files():
             target=process_files_background, args=(session_id,)
         ).start()
     return Response("Processing started.", 202)
-
-
-from flask import send_from_directory
 
 
 @app.route("/download", methods=["GET"])
