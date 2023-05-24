@@ -12,7 +12,7 @@ from flask import (
 )
 from flask_sse import sse
 import dotenv
-import os, shutil, threading, uuid
+import os, shutil, threading, uuid, requests
 
 import ds2logreader
 
@@ -41,6 +41,7 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["ARCHIVE_FOLDER"] = ARCHIVE_FOLDER
 app.config["OUTPUT_TEMP_FOLDER"] = OUTPUT_TEMP_FOLDER
 app.config["FINAL_FOLDER"] = FINAL_FOLDER
+app.config["RECAPTCHA_SECRET_KEY"] = os.getenv("RC_SECRET_KEY_V2")
 
 
 @app.before_request
@@ -73,6 +74,20 @@ def create_session():
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
+        # reCAPTCHA validation
+        recaptcha_response = request.form.get("g-recaptcha-response")
+        if recaptcha_response:
+            data = {
+                "secret": app.config["RECAPTCHA_SECRET_KEY"],
+                "response": recaptcha_response,
+            }
+            google_response = requests.post(
+                "https://www.google.com/recaptcha/api/siteverify", data=data
+            )
+            google_response_json = google_response.json()
+            if not google_response_json["success"]:
+                return "Invalid reCAPTCHA. Please try again.", 400
+
         if "session_id" not in session:
             # Generate a unique id for the session
             session_id = str(uuid.uuid4())
@@ -106,7 +121,7 @@ def index():
 
         session_id = session["session_id"]
         upload_dir = os.path.join(app.config["UPLOAD_FOLDER"], session_id)
-        print(request.form)
+
         for file in request.files.getlist("file"):
             filename = file.filename
             file.save(os.path.join(upload_dir, filename))
