@@ -22,6 +22,15 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 continue;
             }
 
+            // Include g-recaptcha-response in your request
+            const recaptchaResponse = grecaptcha.getResponse();
+
+            if (recaptchaResponse.length === 0) {
+                document.getElementById("fileUploadError").innerText = "Please complete the reCAPTCHA";
+                document.getElementById("fileUploadError").hidden = false;
+                return;
+            }
+
             openProcessing += 1;
             processButton.disabled = true;
 
@@ -32,14 +41,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
             const formData = new FormData();
             formData.append("file", files[i]);
 
-            // Include g-recaptcha-response in your request
-            const recaptchaResponse = grecaptcha.getResponse();
-
-            if (recaptchaResponse.length === 0) {
-                document.getElementById("fileUploadError").innerText = "Please complete the reCAPTCHA";
-                document.getElementById("fileUploadError").hidden = false;
-                return;
-            }
 
             if (recaptchaResponse) {
                 formData.append("g-recaptcha-response", recaptchaResponse);

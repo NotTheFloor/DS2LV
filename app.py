@@ -76,7 +76,7 @@ def create_session():
 def index():
     if request.method == "POST":
         # reCAPTCHA validation
-        if session_id not in valid_sessions:
+        if "session_id" not in session:
             recaptcha_response = request.form.get("g-recaptcha-response")
             if recaptcha_response:
                 data = {
@@ -96,9 +96,6 @@ def index():
                 print("No reCAPTCHA response")
                 return "No reCAPTCHA. Please try again.", 400
 
-            valid_sessions.append(session_id)
-
-        if "session_id" not in session:
             # Generate a unique id for the session
             session_id = str(uuid.uuid4())
             # Save the session id in flask's session
