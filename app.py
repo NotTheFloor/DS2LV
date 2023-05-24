@@ -106,6 +106,7 @@ def index():
 
         session_id = session["session_id"]
         upload_dir = os.path.join(app.config["UPLOAD_FOLDER"], session_id)
+        print(request.form)
         for file in request.files.getlist("file"):
             filename = file.filename
             file.save(os.path.join(upload_dir, filename))
