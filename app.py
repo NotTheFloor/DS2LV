@@ -28,6 +28,7 @@ assert app.secret_key is not None
 app.config["REDIS_URL"] = os.getenv("REDIS_URL")
 
 is_prod = os.getenv("IS_PROD")
+valid_sessions = []
 
 app.register_blueprint(sse, url_prefix="/stream")
 
@@ -75,23 +76,27 @@ def create_session():
 def index():
     if request.method == "POST":
         # reCAPTCHA validation
-        recaptcha_response = request.form.get("g-recaptcha-response")
-        if recaptcha_response:
-            data = {
-                "secret": app.config["RECAPTCHA_SECRET_KEY"],
-                "response": recaptcha_response,
-            }
-            google_response = requests.post(
-                "https://www.google.com/recaptcha/api/siteverify", data=data
-            )
-            google_response_json = google_response.json()
-            print("Valid reCAPTCHA response")
-            if not google_response_json["success"]:
-                print("Invalid reCAPTCHA response")
-                return "Invalid reCAPTCHA. Please try again.", 400
-        else:
-            print("No reCAPTCHA response")
-            return "No reCAPTCHA. Please try again.", 400
+        if session_id not in valid_sessions:
+            recaptcha_response = request.form.get("g-recaptcha-response")
+            if recaptcha_response:
+                data = {
+                    "secret": app.config["RECAPTCHA_SECRET_KEY"],
+                    "response": recaptcha_response,
+                }
+                google_response = requests.post(
+                    "https://www.google.com/recaptcha/api/siteverify",
+                    data=data,
+                )
+                google_response_json = google_response.json()
+                print("reCAPTCHA response exists")
+                if not google_response_json["success"]:
+                    print("Invalid reCAPTCHA response")
+                    return "Invalid reCAPTCHA. Please try again.", 400
+            else:
+                print("No reCAPTCHA response")
+                return "No reCAPTCHA. Please try again.", 400
+
+            valid_sessions.append(session_id)
 
         if "session_id" not in session:
             # Generate a unique id for the session
