@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const fileInput = document.querySelector('input[type="file"]');
     const filesList = document.getElementById("files");
     const processedFilesList = document.getElementById("processedFiles");
+    const fileUploadError = document.getElementById("fileUploadError");
     let openProcessing = 0;
 
     // Handle file selection
@@ -31,9 +32,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
             const recaptchaResponse = grecaptcha.getResponse();
 
             if (recaptchaResponse.length === 0 && !document.getElementById("rc-div").hidden) {
-                document.getElementById("fileUploadError").innerText = "Please complete the reCAPTCHA";
-                document.getElementById("fileUploadError").hidden = false;
-                document.getElementById("fileUploadError").style.color = "#FFAAAA";
+                fileUploadError.innerText = "Please complete the reCAPTCHA";
+                fileUploadError.hidden = false;
+                fileUploadError.style.color = "#FFAAAA";
                 return;
             }
 
@@ -106,11 +107,12 @@ document.addEventListener("DOMContentLoaded", (event) => {
             }
         }, false);
 
+        document.getElementById("processStatus").innerText = "Starting...";
+
         fetch("/process", { method: "POST" })
             .then((response) => {
                 if (response.status === 202) {
-                    // Initiate Server-Sent Events
-                    console.log("");
+                    document.getElementById("processStatus").innerText = "Started";
                 } else {
                     console.error(
                         "Error starting processing, status code: " + response.status
@@ -137,6 +139,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
         // Disable Download button
         downloadButton.disabled = true;
         document.getElementById("uploadFileInput").value = "";
+        document.getElementById("processStatus").innerText = "";
 
         // Request the server to reset the files and folders
         fetch("/reset", { method: "POST" })

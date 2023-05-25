@@ -163,7 +163,7 @@ class DS2LogReader:
                     lines
                 )  # write the filtered lines to the output file
 
-            return ""
+        return ""
 
 
 def get_unique_files(dir):
