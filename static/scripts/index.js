@@ -78,6 +78,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
     processButton.addEventListener("click", (event) => {
         event.preventDefault();
 
+        document.getElementById("processStatus").innerText = "Starting...";
+
         var source = new EventSource("/stream");
         source.addEventListener('process_update', function (event) {
             var data = JSON.parse(event.data);
@@ -107,12 +109,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
             }
         }, false);
 
-        document.getElementById("processStatus").innerText = "Starting...";
-
         fetch("/process", { method: "POST" })
             .then((response) => {
                 if (response.status === 202) {
-                    document.getElementById("processStatus").innerText = "Started";
+                    console.log(":)");
                 } else {
                     console.error(
                         "Error starting processing, status code: " + response.status
