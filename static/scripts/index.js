@@ -33,6 +33,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
             if (recaptchaResponse.length === 0 && !document.getElementById("rc-div").hidden) {
                 document.getElementById("fileUploadError").innerText = "Please complete the reCAPTCHA";
                 document.getElementById("fileUploadError").hidden = false;
+                document.getElementById("fileUploadError").style.color = "#FFAAAA";
                 return;
             }
 
