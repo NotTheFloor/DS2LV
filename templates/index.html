@@ -10,8 +10,9 @@
 <body>
     <h1 id="title-header">DS2 Log Processor</h1>
     <form id="uploadForm" action="/" method="post" enctype="multipart/form-data">
-        <div class="g-recaptcha" data-sitekey="6LcYSDkmAAAAAMhAJ_cTryNzq-3dNFRtOXL0TjBj"></div>
-        <input id="uploadFileInput" type="file" name="file" multiple>
+        <div class="g-recaptcha" data-sitekey="6LcYSDkmAAAAAMhAJ_cTryNzq-3dNFRtOXL0TjBj" data-callback="rcSuccess"></div>
+        <br />
+        <input id="uploadFileInput" type="file" name="file" multiple disabled>
     </form>
     <div id="fileUploadError" hidden></div>
     <!-- Uploaded Files -->

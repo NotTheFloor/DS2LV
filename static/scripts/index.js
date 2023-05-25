@@ -6,6 +6,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const processedFilesList = document.getElementById("processedFiles");
     let openProcessing = 0;
 
+    var rcSuccess = function () {
+        document.getElementById("uploadFileInput").disabled = false;
+    };
+
     // Handle file selection
     fileInput.addEventListener("change", function (event) {
         const files = event.target.files;
