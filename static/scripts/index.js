@@ -1,5 +1,6 @@
 var rcSuccess = function () {
     document.getElementById("uploadFileInput").disabled = false;
+    document.getElementById("rc-div").hidden = true;
 };
 
 document.addEventListener("DOMContentLoaded", (event) => {
@@ -29,7 +30,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
             // Include g-recaptcha-response in your request
             const recaptchaResponse = grecaptcha.getResponse();
 
-            if (recaptchaResponse.length === 0) {
+            if (recaptchaResponse.length === 0 && !document.getElementById("rc-div").hidden) {
                 document.getElementById("fileUploadError").innerText = "Please complete the reCAPTCHA";
                 document.getElementById("fileUploadError").hidden = false;
                 return;
