@@ -1,3 +1,7 @@
+var rcSuccess = function () {
+    document.getElementById("uploadFileInput").disabled = false;
+};
+
 document.addEventListener("DOMContentLoaded", (event) => {
     const processButton = document.getElementById("process");
     const downloadButton = document.getElementById("downloadButton");
@@ -5,10 +9,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const filesList = document.getElementById("files");
     const processedFilesList = document.getElementById("processedFiles");
     let openProcessing = 0;
-
-    var rcSuccess = function () {
-        document.getElementById("uploadFileInput").disabled = false;
-    };
 
     // Handle file selection
     fileInput.addEventListener("change", function (event) {
