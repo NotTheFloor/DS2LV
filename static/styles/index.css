@@ -69,3 +69,29 @@ button:disabled {
     background-color: #5c67b8;
     /* Green */
 }
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 30px;
+}
+
+th,
+td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+th {
+    background-color: #292f4f;
+    color: white;
+}
+
+#files th:nth-child(1) {
+    width: 30ch;
+}
+
+tr:nth-child(even) {
+    background-color: #f2f2f2;
+}

@@ -60,14 +60,25 @@ document.addEventListener("DOMContentLoaded", (event) => {
         const files = event.target.files;
         for (let i = 0; i < files.length; i++) {
             const filename = files[i].name;
+            const filesize = files[i].size; // Add this line to get file size
 
-            // Create an li item with "Uploading" status
-            const li = document.createElement("li");
+            // Create a table row and cells for filename, filesize and status
+            const tr = document.createElement("tr");
+            const tdName = document.createElement("td");
+            const tdSize = document.createElement("td");
+            const tdStatus = document.createElement("td");
+
+            tdName.textContent = filename;
+            tdSize.textContent = filesize + ' bytes'; // You can format the size as needed
+
+            tr.appendChild(tdName);
+            tr.appendChild(tdSize);
+            tr.appendChild(tdStatus);
+            filesList.appendChild(tr);
 
             if (!filename.endsWith(".csv")) {
-                li.textContent = filename + " (Error: CSV extensions only)";
-                li.style.color = "#FFAAAA";
-                filesList.appendChild(li);
+                tdStatus.textContent = "Error: CSV extensions only";
+                tr.style.color = "#FFAAAA";
                 continue;
             }
 
@@ -84,13 +95,11 @@ document.addEventListener("DOMContentLoaded", (event) => {
             openProcessing += 1;
             processButton.disabled = true;
 
-            li.textContent = filename + " (Uploading)";
-            filesList.appendChild(li);
+            tdStatus.textContent = "Uploading";
 
             // Upload the file
             const formData = new FormData();
             formData.append("file", files[i]);
-
 
             if (recaptchaResponse) {
                 formData.append("g-recaptcha-response", recaptchaResponse);
@@ -102,18 +111,18 @@ document.addEventListener("DOMContentLoaded", (event) => {
             })
                 .then((response) => {
                     if (response.ok) {
-                        li.textContent = filename + " (Complete)";
+                        tdStatus.textContent = "Complete";
                         openProcessing -= 1;
 
                         if (openProcessing <= 0) processButton.disabled = false;
                     } else {
                         console.error("Error uploading file, status code: " + response.status);
-                        li.textContent = filename + " (Error)";
+                        tdStatus.textContent = "Error";
                     }
                 })
                 .catch((error) => {
                     console.error("Error:", error);
-                    li.textContent = filename + " (Error)";
+                    tdStatus.textContent = "Error";
                 });
         }
     });
