@@ -9,6 +9,7 @@ flask-sse = "*"
 python-dotenv = "*"
 requests = "*"
 sendgrid = "*"
+bleach = "*"
 
 [dev-packages]
 

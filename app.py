@@ -13,6 +13,7 @@ from flask import (
 )
 from flask_sse import sse
 import dotenv
+import bleach
 import os, shutil, threading, uuid, requests
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
@@ -52,6 +53,8 @@ app.config["RECAPTCHA_SECRET_KEY"] = os.getenv("RC_SECRET_KEY_V2")
 def feedback():
     data = request.get_json()
     feedback = data.get("feedback")
+
+    feedback = bleach.clean(feedback)
 
     # SendGrid configuration
     sendgrid_api_key = os.getenv(
