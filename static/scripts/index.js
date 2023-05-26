@@ -12,6 +12,49 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const fileUploadError = document.getElementById("fileUploadError");
     let openProcessing = 0;
 
+    // Get a reference to the dialog and the submit button
+    var dialog = document.getElementById('feedbackDialog');
+    var feedbackSubmit = document.getElementById('feedbackSubmit');
+
+    // Open the dialog when the feedback button is clicked
+    document.getElementById('feedbackButton').onclick = function () {
+        dialog.showModal();
+    };
+
+    // Close the dialog when the cancel button is clicked
+    dialog.querySelector('[value=cancel]').onclick = function () {
+        dialog.close();
+    };
+
+    // Send feedback when the submit button is clicked
+    feedbackSubmit.onclick = function () {
+        let feedbackText = document.getElementById("feedbackText").value;
+        if (feedbackText.length === 0) {
+            alert("Please enter some feedback before submitting");
+        } else {
+            fetch("/feedback", {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ feedback: feedbackText }),
+            })
+                .then(response => {
+                    if (response.ok) {
+                        alert("Thank you for your feedback!");
+                        dialog.close();
+                    } else {
+                        throw new Error("Network response was not ok");
+                    }
+                })
+                .catch(error => {
+                    alert("An error occurred while submitting your feedback. Please try again later.");
+                    console.error('There has been a problem with your fetch operation:', error);
+                });
+        }
+    };
+
+
     // Handle file selection
     fileInput.addEventListener("change", function (event) {
         const files = event.target.files;

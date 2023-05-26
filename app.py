@@ -9,10 +9,13 @@ from flask import (
     abort,
     session,
     send_from_directory,
+    jsonify,
 )
 from flask_sse import sse
 import dotenv
 import os, shutil, threading, uuid, requests
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 import ds2logreader
 
@@ -43,6 +46,42 @@ app.config["ARCHIVE_FOLDER"] = ARCHIVE_FOLDER
 app.config["OUTPUT_TEMP_FOLDER"] = OUTPUT_TEMP_FOLDER
 app.config["FINAL_FOLDER"] = FINAL_FOLDER
 app.config["RECAPTCHA_SECRET_KEY"] = os.getenv("RC_SECRET_KEY_V2")
+
+
+@app.route("/feedback", methods=["POST"])
+def feedback():
+    data = request.get_json()
+    feedback = data.get("feedback")
+
+    # SendGrid configuration
+    sendgrid_api_key = os.getenv(
+        "SENDGRID_API_KEY"
+    )  # Replace with your SendGrid API Key
+    sender_email = "contact@synlective.com"  # Replace with your email
+    receiver_email = "contact@synlective.com"  # Replace with receiver's email
+
+    # Prepare the email
+    message = Mail(
+        from_email=sender_email,
+        to_emails=receiver_email,
+        subject="DS2LV - New feedback received",
+        plain_text_content=feedback,
+    )
+
+    try:
+        sg = SendGridAPIClient(sendgrid_api_key)
+        response = sg.send(message)
+        return jsonify({"message": "Email sent successfully"}), 200
+    except Exception as e:
+        return (
+            jsonify(
+                {
+                    "message": "An error occurred while sending the email",
+                    "error": str(e),
+                }
+            ),
+            500,
+        )
 
 
 @app.before_request

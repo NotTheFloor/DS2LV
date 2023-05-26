@@ -33,6 +33,19 @@
     <a href="https://www.paypal.com/donate/?business=5XK36BWCXUEWN&no_recurring=0&item_name=Continuing+creating+and+providing+software+to+make+your+life+easier&currency_code=USD" target="_blank">
         <button id="donateButton">Donate</button>
     </a>
+    <button type="button" class="btn btn-primary" id="feedbackButton">
+        Feature Requests/Feedback
+    </button>
+    <dialog id="feedbackDialog">
+        <form method="dialog">
+            <h1>Feature Requests/Feedback</h1>
+            <textarea id="feedbackText" maxlength="200"></textarea>
+            <menu>
+                <button value="cancel">Cancel</button>
+                <button id="feedbackSubmit" value="submit">Submit</button>
+            </menu>
+        </form>
+    </dialog>    
     <script src="{{ url_for('static', filename='scripts/index.js') }}"></script>
 </body>
 </html>

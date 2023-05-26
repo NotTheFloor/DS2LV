@@ -61,3 +61,11 @@ button:disabled {
     background-color: #5cb85c;
     /* Green */
 }
+
+#feedbackButton {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background-color: #5c67b8;
+    /* Green */
+}
