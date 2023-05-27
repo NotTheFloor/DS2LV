@@ -36,6 +36,13 @@ document.addEventListener("DOMContentLoaded", (event) => {
         dialog.close();
     };
 
+    if (window.location.hostname === "127.0.0.1") {
+        document.getElementById("uploadFileInput").disabled = false;
+        document.getElementById("rc-div").hidden = true;
+    };
+
+    console.log(window.location.hostname);
+
     // Send feedback when the submit button is clicked
     feedbackSubmit.onclick = function () {
         let feedbackText = document.getElementById("feedbackText").value;
@@ -95,7 +102,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
             // Include g-recaptcha-response in your request
             const recaptchaResponse = grecaptcha.getResponse();
 
-            if (recaptchaResponse.length === 0 && !document.getElementById("rc-div").hidden) {
+            if (recaptchaResponse.length === 0
+                && !document.getElementById("rc-div").hidden
+                && window.location.hostname !== "127.0.0.1") {
                 fileUploadError.innerText = "Please complete the reCAPTCHA";
                 fileUploadError.hidden = false;
                 fileUploadError.style.color = "#FFAAAA";
@@ -115,25 +124,42 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 formData.append("g-recaptcha-response", recaptchaResponse);
             }
 
-            fetch("/", {
-                method: "POST",
-                body: formData,
-            })
-                .then((response) => {
-                    if (response.ok) {
-                        tdStatus.textContent = "Complete";
-                        openProcessing -= 1;
+            // Use XMLHttpRequest instead of fetch
+            const xhr = new XMLHttpRequest();
 
-                        if (openProcessing <= 0) processButton.disabled = false;
-                    } else {
-                        console.error("Error uploading file, status code: " + response.status);
-                        tdStatus.textContent = "Error";
-                    }
-                })
-                .catch((error) => {
-                    console.error("Error:", error);
+            // Listen to the 'progress' event
+            xhr.upload.addEventListener('progress', function (e) {
+                if (e.lengthComputable) {
+                    // Calculate the percentage of the upload
+                    const percentComplete = Math.round((e.loaded / e.total) * 100);
+                    // Update the status cell with the progress
+                    tdStatus.textContent = "Uploading (" + percentComplete + "%)";
+                }
+            }, false);
+
+            // Listen to the 'load' event
+            xhr.addEventListener('load', function (e) {
+                // Update the status cell based on the HTTP status code
+                if (xhr.status == 200) {
+                    tdStatus.textContent = "Complete";
+                    openProcessing -= 1;
+
+                    if (openProcessing <= 0) processButton.disabled = false;
+                } else {
+                    console.error("Error uploading file, status code: " + xhr.status);
                     tdStatus.textContent = "Error";
-                });
+                }
+            });
+
+            // Listen to the 'error' event
+            xhr.addEventListener('error', function (e) {
+                console.error("Error:", e);
+                tdStatus.textContent = "Error";
+            });
+
+            // Open and send the request
+            xhr.open("POST", "/", true);
+            xhr.send(formData);
         }
     });
 

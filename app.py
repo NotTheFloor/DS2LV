@@ -116,13 +116,13 @@ def create_session():
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    with open("test_file.txt", "w") as file:
-        pass
     if request.method == "POST":
         # reCAPTCHA validation
         if "session_id" not in session:
-            recaptcha_response = request.form.get("g-recaptcha-response")
-            if recaptcha_response:
+            recaptcha_response = None
+            if is_prod:
+                recaptcha_response = request.form.get("g-recaptcha-response")
+            if recaptcha_response or not is_prod:
                 data = {
                     "secret": app.config["RECAPTCHA_SECRET_KEY"],
                     "response": recaptcha_response,
