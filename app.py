@@ -37,8 +37,6 @@ valid_sessions = []
 app.register_blueprint(sse, url_prefix="/stream")
 
 file_root = os.getenv("FILE_ROOT")
-if is_prod:
-    file_root = os.getenv("APP_PATH")
 
 UPLOAD_FOLDER = os.path.join(file_root, "uploads")
 ARCHIVE_FOLDER = os.path.join(file_root, "archive")
