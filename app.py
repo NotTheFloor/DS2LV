@@ -118,10 +118,10 @@ def create_session():
 def index():
     if request.method == "POST":
         # reCAPTCHA validation
+        recaptcha_response = None
+        if is_prod:
+            recaptcha_response = request.form.get("g-recaptcha-response")
         if "session_id" not in session:
-            recaptcha_response = None
-            if is_prod:
-                recaptcha_response = request.form.get("g-recaptcha-response")
             if recaptcha_response or not is_prod:
                 data = {
                     "secret": app.config["RECAPTCHA_SECRET_KEY"],
