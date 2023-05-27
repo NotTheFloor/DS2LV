@@ -92,6 +92,10 @@ th {
     width: 30ch;
 }
 
+#files th:nth-child(2) {
+    width: 10ch;
+}
+
 tr:nth-child(even) {
     background-color: #f2f2f2;
 }

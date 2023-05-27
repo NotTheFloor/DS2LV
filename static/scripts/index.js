@@ -3,11 +3,21 @@ var rcSuccess = function () {
     document.getElementById("rc-div").hidden = true;
 };
 
+function formatFileSize(bytes) {
+    if (bytes < 1024) {
+        return bytes + ' Bytes';
+    } else if (bytes < 1048576) {
+        return (bytes / 1024).toFixed(0) + ' KB';
+    } else {
+        return (bytes / 1048576).toFixed(0) + ' MB';
+    }
+}
+
 document.addEventListener("DOMContentLoaded", (event) => {
     const processButton = document.getElementById("process");
     const downloadButton = document.getElementById("downloadButton");
     const fileInput = document.querySelector('input[type="file"]');
-    const filesList = document.getElementById("files");
+    const filesList = document.getElementById('filesBody');
     const processedFilesList = document.getElementById("processedFiles");
     const fileUploadError = document.getElementById("fileUploadError");
     let openProcessing = 0;
@@ -69,7 +79,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
             const tdStatus = document.createElement("td");
 
             tdName.textContent = filename;
-            tdSize.textContent = filesize + ' bytes'; // You can format the size as needed
+            tdSize.textContent = formatFileSize(filesize); // You can format the size as needed
 
             tr.appendChild(tdName);
             tr.appendChild(tdSize);
