@@ -160,6 +160,8 @@ def index():
                     print("Invalid reCAPTCHA response")
                     return "Invalid reCAPTCHA. Please try again.", 400
 
+        session_id = session["session_id"]
+
         # Create a new directory to store this user's files
         upload_dir = os.path.join(app.config["UPLOAD_FOLDER"], session_id)
         os.makedirs(upload_dir, exist_ok=True)
@@ -177,9 +179,6 @@ def index():
         # Similar for the final directory
         final_dir = os.path.join(app.config["FINAL_FOLDER"], session_id)
         os.makedirs(final_dir, exist_ok=True)
-
-        session_id = session["session_id"]
-        upload_dir = os.path.join(app.config["UPLOAD_FOLDER"], session_id)
 
         for file in request.files.getlist("file"):
             filename = file.filename
