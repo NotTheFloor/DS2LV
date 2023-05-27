@@ -116,6 +116,8 @@ def create_session():
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+    with open("test_file.txt", "w") as file:
+        pass
     if request.method == "POST":
         # reCAPTCHA validation
         if "session_id" not in session:
