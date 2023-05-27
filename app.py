@@ -15,6 +15,7 @@ from flask_sse import sse
 import dotenv
 import bleach
 import os, shutil, threading, uuid, requests
+from datetime import timedelta
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
@@ -30,6 +31,8 @@ assert app.secret_key is not None
 # Add the Redis URL to your application's configuration
 # Replace "redis://localhost:6379" with your Redis server's URL if it's not on localhost
 app.config["REDIS_URL"] = os.getenv("REDIS_URL")
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=4)
+
 
 is_prod = os.getenv("IS_PROD")
 valid_sessions = []
@@ -144,21 +147,21 @@ def index():
             session_id = str(uuid.uuid4())
             # Save the session id in flask's session
             session["session_id"] = session_id
-        else:
-            if recaptcha_response:
-                data = {
-                    "secret": app.config["RECAPTCHA_SECRET_KEY"],
-                    "response": recaptcha_response,
-                }
-                google_response = requests.post(
-                    "https://www.google.com/recaptcha/api/siteverify",
-                    data=data,
-                )
-                google_response_json = google_response.json()
-                print("reCAPTCHA response exists")
-                if not google_response_json["success"]:
-                    print("Invalid reCAPTCHA response")
-                    return "Invalid reCAPTCHA. Please try again.", 400
+        # else:
+        #     if recaptcha_response:
+        #         data = {
+        #             "secret": app.config["RECAPTCHA_SECRET_KEY"],
+        #             "response": recaptcha_response,
+        #         }
+        #         google_response = requests.post(
+        #             "https://www.google.com/recaptcha/api/siteverify",
+        #             data=data,
+        #         )
+        #         google_response_json = google_response.json()
+        #         print("reCAPTCHA response exists")
+        #         if not google_response_json["success"]:
+        #             print("Invalid reCAPTCHA response")
+        #             return "Invalid reCAPTCHA. Please try again.", 400
 
         session_id = session["session_id"]
 
