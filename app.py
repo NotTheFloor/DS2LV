@@ -144,31 +144,39 @@ def index():
             session_id = str(uuid.uuid4())
             # Save the session id in flask's session
             session["session_id"] = session_id
-            # Create a new directory to store this user's files
-            upload_dir = os.path.join(app.config["UPLOAD_FOLDER"], session_id)
-            os.makedirs(upload_dir, exist_ok=True)
-
-            # Similar for the output temp directory
-            output_temp_dir = os.path.join(
-                app.config["OUTPUT_TEMP_FOLDER"], session_id
-            )
-            os.makedirs(output_temp_dir, exist_ok=True)
-
-            # Similar for the archive directory
-            archive_dir = os.path.join(
-                app.config["ARCHIVE_FOLDER"], session_id
-            )
-            os.makedirs(archive_dir, exist_ok=True)
-
-            # Similar for the final directory
-            final_dir = os.path.join(app.config["FINAL_FOLDER"], session_id)
-            os.makedirs(final_dir, exist_ok=True)
         else:
-            session_id = session["session_id"]
-            output_temp_dir = os.path.join(
-                app.config["OUTPUT_TEMP_FOLDER"], session_id
-            )
-            os.makedirs(output_temp_dir, exist_ok=True)
+            if recaptcha_response:
+                data = {
+                    "secret": app.config["RECAPTCHA_SECRET_KEY"],
+                    "response": recaptcha_response,
+                }
+                google_response = requests.post(
+                    "https://www.google.com/recaptcha/api/siteverify",
+                    data=data,
+                )
+                google_response_json = google_response.json()
+                print("reCAPTCHA response exists")
+                if not google_response_json["success"]:
+                    print("Invalid reCAPTCHA response")
+                    return "Invalid reCAPTCHA. Please try again.", 400
+
+        # Create a new directory to store this user's files
+        upload_dir = os.path.join(app.config["UPLOAD_FOLDER"], session_id)
+        os.makedirs(upload_dir, exist_ok=True)
+
+        # Similar for the output temp directory
+        output_temp_dir = os.path.join(
+            app.config["OUTPUT_TEMP_FOLDER"], session_id
+        )
+        os.makedirs(output_temp_dir, exist_ok=True)
+
+        # Similar for the archive directory
+        archive_dir = os.path.join(app.config["ARCHIVE_FOLDER"], session_id)
+        os.makedirs(archive_dir, exist_ok=True)
+
+        # Similar for the final directory
+        final_dir = os.path.join(app.config["FINAL_FOLDER"], session_id)
+        os.makedirs(final_dir, exist_ok=True)
 
         session_id = session["session_id"]
         upload_dir = os.path.join(app.config["UPLOAD_FOLDER"], session_id)
