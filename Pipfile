@@ -10,6 +10,7 @@ python-dotenv = "*"
 requests = "*"
 sendgrid = "*"
 bleach = "*"
+azure-cosmos = "*"
 
 [dev-packages]
 

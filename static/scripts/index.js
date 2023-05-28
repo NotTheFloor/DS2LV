@@ -22,6 +22,11 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const fileUploadError = document.getElementById("fileUploadError");
     let openProcessing = 0;
 
+    const emailForm = document.querySelector("#emailDialog form");
+    const emailResultsButton = document.getElementById("emailResultsButton");
+    const emailDialog = document.getElementById("emailDialog");
+    const emailCancel = document.getElementById("emailCancel");
+
     // Get a reference to the dialog and the submit button
     var dialog = document.getElementById('feedbackDialog');
     var feedbackSubmit = document.getElementById('feedbackSubmit');
@@ -41,7 +46,50 @@ document.addEventListener("DOMContentLoaded", (event) => {
         document.getElementById("rc-div").hidden = true;
     };
 
-    console.log(window.location.hostname);
+    emailResultsButton.addEventListener("click", () => {
+        emailDialog.showModal();
+    });
+
+    emailCancel.addEventListener("click", () => {
+        emailDialog.close();
+    });
+
+    emailForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const emailInput = document.getElementById("emailAddress");
+        const email = emailInput.value;
+
+        // Validate the email address on the client-side if needed
+
+        // Create the request body
+        const requestBody = {
+            email_address: email,
+        };
+
+        // Send the POST request to the server
+        fetch("/email", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(requestBody),
+        })
+            .then((response) => {
+                if (response.ok) {
+                    // Handle successful response
+                    console.log("Email sent successfully");
+                    // Close the dialog after successful email submission
+                    emailDialog.close();
+                } else {
+                    // Handle error response
+                    console.error("Error sending email:", response.status);
+                }
+            })
+            .catch((error) => {
+                // Handle network or other errors
+                console.error("Error sending email:", error);
+            });
+    });
 
     // Send feedback when the submit button is clicked
     feedbackSubmit.onclick = function () {

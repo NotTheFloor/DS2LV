@@ -38,10 +38,22 @@
     </div>
     <button id="process" disabled>Process</button>
     <button id="downloadButton" disabled>Download</button>
+    <button id="emailResultsButton">Email Results</button>
     <div id="processStatus"></div>
     <a href="https://www.paypal.com/donate/?business=5XK36BWCXUEWN&no_recurring=0&item_name=Continuing+creating+and+providing+software+to+make+your+life+easier&currency_code=USD" target="_blank">
         <button id="donateButton">Donate</button>
     </a>
+    <dialog id="emailDialog">
+        <form>
+          <label for="emailAddress">Email Address:</label>
+          <input type="email" id="emailAddress" required>
+      
+          <menu>
+            <button type="button" id="emailCancel">Cancel</button>
+            <button type="submit" id="emailSubmit">Submit</button>
+          </menu>
+        </form>
+      </dialog>
     <button type="button" class="btn btn-primary" id="feedbackButton">
         Feature Requests/Feedback
     </button>

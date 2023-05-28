@@ -14,14 +14,29 @@ from flask import (
 from flask_sse import sse
 import dotenv
 import bleach
-import os, shutil, threading, uuid, requests
+import os, shutil, threading, uuid, requests, secrets, string, re
 from datetime import timedelta
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
+from azure.cosmos import CosmosClient, PartitionKey
+from azure.cosmos.exceptions import CosmosHttpResponseError
 
 import ds2logreader
 
 dotenv.load_dotenv()
+
+CDB_NAME = "ds2lv-db"
+CDB_CONTAINER_NAME = "emails"
+CDB_ENDPOINT = os.getenv("COSMOS_ENDPOINT")
+CDB_KEY = os.getenv("COSMOS_KEY")
+
+is_prod = os.getenv("IS_PROD")
+file_root = os.getenv("FILE_ROOT")
+
+UPLOAD_FOLDER = os.path.join(file_root, "uploads")
+ARCHIVE_FOLDER = os.path.join(file_root, "archive")
+OUTPUT_TEMP_FOLDER = os.path.join(file_root, "output_temp")
+FINAL_FOLDER = os.path.join(file_root, "final")
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
@@ -33,23 +48,25 @@ assert app.secret_key is not None
 app.config["REDIS_URL"] = os.getenv("REDIS_URL")
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=4)
 
-
-is_prod = os.getenv("IS_PROD")
-valid_sessions = []
-
 app.register_blueprint(sse, url_prefix="/stream")
 
-file_root = os.getenv("FILE_ROOT")
-
-UPLOAD_FOLDER = os.path.join(file_root, "uploads")
-ARCHIVE_FOLDER = os.path.join(file_root, "archive")
-OUTPUT_TEMP_FOLDER = os.path.join(file_root, "output_temp")
-FINAL_FOLDER = os.path.join(file_root, "final")
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["ARCHIVE_FOLDER"] = ARCHIVE_FOLDER
 app.config["OUTPUT_TEMP_FOLDER"] = OUTPUT_TEMP_FOLDER
 app.config["FINAL_FOLDER"] = FINAL_FOLDER
 app.config["RECAPTCHA_SECRET_KEY"] = os.getenv("RC_SECRET_KEY_V2")
+
+
+def is_valid_email(email):
+    """Check if the given string looks like an email address."""
+    pattern = r"^[\w\.-]+@[\w\.-]+\.\w+$"
+    return re.match(pattern, email) is not None
+
+
+def generate_random_key(length=32):
+    """Generate a random key of given length."""
+    characters = string.ascii_letters + string.digits
+    return "".join(secrets.choice(characters) for _ in range(length))
 
 
 @app.route("/feedback", methods=["POST"])
@@ -90,31 +107,31 @@ def feedback():
         )
 
 
-@app.before_request
-def create_session():
-    # Check if session is not initialized
-    if "session_id" not in session:
-        # Generate a unique id for the session
-        session_id = str(uuid.uuid4())
-        # Save the session id in flask's session
-        session["session_id"] = session_id
-        # Create a new directory to store this user's files
-        upload_dir = os.path.join(app.config["UPLOAD_FOLDER"], session_id)
-        os.makedirs(upload_dir, exist_ok=True)
+# @app.before_request
+# def create_session():
+#     # Check if session is not initialized
+#     if "session_id" not in session:
+#         # Generate a unique id for the session
+#         session_id = str(uuid.uuid4())
+#         # Save the session id in flask's session
+#         session["session_id"] = session_id
+#         # Create a new directory to store this user's files
+#         upload_dir = os.path.join(app.config["UPLOAD_FOLDER"], session_id)
+#         os.makedirs(upload_dir, exist_ok=True)
 
-        # Similar for the output temp directory
-        output_temp_dir = os.path.join(
-            app.config["OUTPUT_TEMP_FOLDER"], session_id
-        )
-        os.makedirs(output_temp_dir, exist_ok=True)
+#         # Similar for the output temp directory
+#         output_temp_dir = os.path.join(
+#             app.config["OUTPUT_TEMP_FOLDER"], session_id
+#         )
+#         os.makedirs(output_temp_dir, exist_ok=True)
 
-        # Similar for the archive directory
-        archive_dir = os.path.join(app.config["ARCHIVE_FOLDER"], session_id)
-        os.makedirs(archive_dir, exist_ok=True)
+#         # Similar for the archive directory
+#         archive_dir = os.path.join(app.config["ARCHIVE_FOLDER"], session_id)
+#         os.makedirs(archive_dir, exist_ok=True)
 
-        # Similar for the final directory
-        final_dir = os.path.join(app.config["FINAL_FOLDER"], session_id)
-        os.makedirs(final_dir, exist_ok=True)
+#         # Similar for the final directory
+#         final_dir = os.path.join(app.config["FINAL_FOLDER"], session_id)
+#         os.makedirs(final_dir, exist_ok=True)
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -125,7 +142,7 @@ def index():
         if is_prod:
             recaptcha_response = request.form.get("g-recaptcha-response")
         if "session_id" not in session:
-            if recaptcha_response or not is_prod:
+            if recaptcha_response and not is_prod:
                 data = {
                     "secret": app.config["RECAPTCHA_SECRET_KEY"],
                     "response": recaptcha_response,
@@ -139,7 +156,7 @@ def index():
                 if not google_response_json["success"]:
                     print("Invalid reCAPTCHA response")
                     return "Invalid reCAPTCHA. Please try again.", 400
-            else:
+            elif is_prod:
                 print("No reCAPTCHA response")
                 return "No reCAPTCHA. Please try again.", 400
 
@@ -295,6 +312,66 @@ def reset_files():
     shutil.rmtree(output_dir)
     # os.makedirs(output_dir)
     return "", 204
+
+
+@app.route("/email", methods=["POST"])
+def email_user():
+    session_id = session["session_id"]
+    data = request.get_json()
+    email_address = data.get("email_address")
+
+    # TODO: Should further validate the email address here
+    if not email_address:
+        return "No email address found", 400
+
+    if not is_valid_email(email_address):
+        return "Email is of an unexpected form", 400
+
+    key_path = PartitionKey(path="/emailId")
+
+    print("Opening client")
+    client = CosmosClient(CDB_ENDPOINT, CDB_KEY)
+
+    print("Connecting DB")
+    database = client.create_database_if_not_exists(id=CDB_NAME)
+
+    print("Getting container")
+    container = database.create_container_if_not_exists(
+        id=CDB_CONTAINER_NAME, partition_key=key_path
+    )
+
+    try:
+        # Can be removed in prod
+        print(f"Attempting to read item with email {email_address}")
+        item = container.read_item(
+            item=email_address, partition_key="Email Addresses"
+        )
+    except CosmosHttpResponseError as e:
+        # Can be removed in prod
+        print(f"Email address {email_address} not found. Creating item")
+        print(e)
+
+        final_dir = os.path.join(
+            app.config["FINAL_FOLDER"], session_id, "output.zip"
+        )
+
+        new_item = {
+            "id": email_address,
+            "emailId": "Email Addresses",
+            "secret": generate_random_key(),
+            "is_verified": False,
+            "retries": 0,
+            "send_count": 0,
+            "download_link": final_dir,
+        }
+
+        container.create_item(new_item)
+
+        return "", 201
+
+    print(item)
+
+    return "", 200
 
 
 if __name__ == "__main__":
