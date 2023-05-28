@@ -99,3 +99,9 @@ th {
 tr:nth-child(even) {
     background-color: #f2f2f2;
 }
+
+#feedbackText {
+    margin-left: 20px;
+    width: 380px;
+    height: 100px;
+}
