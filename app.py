@@ -29,9 +29,12 @@ CDB_NAME = "ds2lv-db"
 CDB_CONTAINER_NAME = "emails"
 CDB_ENDPOINT = os.getenv("COSMOS_ENDPOINT")
 CDB_KEY = os.getenv("COSMOS_KEY")
+EMAIL_PARTITION_KEY = "Email Addresses"
 
 is_prod = os.getenv("IS_PROD")
 file_root = os.getenv("FILE_ROOT")
+sendgrid_api_key = os.getenv("SENDGRID_API_KEY")
+key_path = PartitionKey(path="/emailId")
 
 UPLOAD_FOLDER = os.path.join(file_root, "uploads")
 ARCHIVE_FOLDER = os.path.join(file_root, "archive")
@@ -69,26 +72,27 @@ def generate_random_key(length=32):
     return "".join(secrets.choice(characters) for _ in range(length))
 
 
-@app.route("/feedback", methods=["POST"])
-def feedback():
-    data = request.get_json()
-    feedback = data.get("feedback")
+def get_cdb_container():
+    client = CosmosClient(CDB_ENDPOINT, CDB_KEY)
 
-    feedback = bleach.clean(feedback)
+    database = client.create_database_if_not_exists(id=CDB_NAME)
 
-    # SendGrid configuration
-    sendgrid_api_key = os.getenv(
-        "SENDGRID_API_KEY"
-    )  # Replace with your SendGrid API Key
-    sender_email = "contact@synlective.com"  # Replace with your email
-    receiver_email = "contact@synlective.com"  # Replace with receiver's email
+    return database.create_container_if_not_exists(
+        id=CDB_CONTAINER_NAME, partition_key=key_path
+    )
+
+
+def send_email(
+    to_email, content, subject, from_email="contact@synlective.com"
+):
+    content = bleach.clean(content)
 
     # Prepare the email
     message = Mail(
-        from_email=sender_email,
-        to_emails=receiver_email,
-        subject="DS2LV - New feedback received",
-        plain_text_content=feedback,
+        from_email=from_email,
+        to_emails=to_email,
+        subject=subject,
+        plain_text_content=content,
     )
 
     try:
@@ -105,6 +109,16 @@ def feedback():
             ),
             500,
         )
+
+
+@app.route("/feedback", methods=["POST"])
+def feedback():
+    data = request.get_json()
+    feedback = data.get("feedback")
+
+    send_email(
+        "contact@synlective.com", feedback, "DS2LV - New feedback received"
+    )
 
 
 # @app.before_request
@@ -327,38 +341,23 @@ def email_user():
     if not is_valid_email(email_address):
         return "Email is of an unexpected form", 400
 
-    key_path = PartitionKey(path="/emailId")
-
-    print("Opening client")
-    client = CosmosClient(CDB_ENDPOINT, CDB_KEY)
-
-    print("Connecting DB")
-    database = client.create_database_if_not_exists(id=CDB_NAME)
-
-    print("Getting container")
-    container = database.create_container_if_not_exists(
-        id=CDB_CONTAINER_NAME, partition_key=key_path
-    )
+    container = get_cdb_container()
 
     try:
-        # Can be removed in prod
-        print(f"Attempting to read item with email {email_address}")
         item = container.read_item(
-            item=email_address, partition_key="Email Addresses"
+            item=email_address, partition_key=EMAIL_PARTITION_KEY
         )
     except CosmosHttpResponseError as e:
-        # Can be removed in prod
-        print(f"Email address {email_address} not found. Creating item")
-        print(e)
-
         final_dir = os.path.join(
             app.config["FINAL_FOLDER"], session_id, "output.zip"
         )
 
+        token = generate_random_key()
+
         new_item = {
             "id": email_address,
-            "emailId": "Email Addresses",
-            "secret": generate_random_key(),
+            "emailId": EMAIL_PARTITION_KEY,
+            "secret": token,
             "is_verified": False,
             "retries": 0,
             "send_count": 0,
@@ -367,11 +366,47 @@ def email_user():
 
         container.create_item(new_item)
 
+        # Send validation email
+        content = f"This is the first time we're seeing this email address.\n\n \
+            Please click the validation link below to validate your email and access your download\n \
+            This is a one time step.\n\n \
+            https://ds2lv.synlective.com/validate?email={email_address}&token={token}"
+
+        send_email(email_address, content, "DS2LV Email Verification")
+
         return "", 201
 
     print(item)
 
     return "", 200
+
+
+@app.route("/validate", methods=["GET"])
+def validate_email():
+    email_address = request.args.get("email")
+    token = request.args.get("token")
+
+    # Example validation logic
+    if email_address and token:
+        container = get_cdb_container()
+
+        item = container.read_item(
+            item=email_address, partition_key=EMAIL_PARTITION_KEY
+        )
+
+        if item["secret"] != token:
+            return "Bad secret", 400
+
+        item["is_verified"] = True
+        item["send_count"] += 1
+
+        dl_link = item["download_link"]
+
+        container.upsert_item(item)
+
+        return render_template("success.html")
+    else:
+        return "Invalid email validation request", 400
 
 
 if __name__ == "__main__":
