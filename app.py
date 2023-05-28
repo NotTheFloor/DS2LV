@@ -8,13 +8,13 @@ from flask import (
     send_from_directory,
     abort,
     session,
-    send_from_directory,
+    send_file,
     jsonify,
 )
 from flask_sse import sse
 import dotenv
 import bleach
-import os, shutil, threading, uuid, requests, secrets, string, re
+import os, shutil, threading, uuid, requests, secrets, string, re, time
 from datetime import timedelta
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
@@ -121,33 +121,6 @@ def feedback():
     )
 
 
-# @app.before_request
-# def create_session():
-#     # Check if session is not initialized
-#     if "session_id" not in session:
-#         # Generate a unique id for the session
-#         session_id = str(uuid.uuid4())
-#         # Save the session id in flask's session
-#         session["session_id"] = session_id
-#         # Create a new directory to store this user's files
-#         upload_dir = os.path.join(app.config["UPLOAD_FOLDER"], session_id)
-#         os.makedirs(upload_dir, exist_ok=True)
-
-#         # Similar for the output temp directory
-#         output_temp_dir = os.path.join(
-#             app.config["OUTPUT_TEMP_FOLDER"], session_id
-#         )
-#         os.makedirs(output_temp_dir, exist_ok=True)
-
-#         # Similar for the archive directory
-#         archive_dir = os.path.join(app.config["ARCHIVE_FOLDER"], session_id)
-#         os.makedirs(archive_dir, exist_ok=True)
-
-#         # Similar for the final directory
-#         final_dir = os.path.join(app.config["FINAL_FOLDER"], session_id)
-#         os.makedirs(final_dir, exist_ok=True)
-
-
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
@@ -174,25 +147,8 @@ def index():
                 print("No reCAPTCHA response")
                 return "No reCAPTCHA. Please try again.", 400
 
-            # Generate a unique id for the session
             session_id = str(uuid.uuid4())
-            # Save the session id in flask's session
             session["session_id"] = session_id
-        # else:
-        #     if recaptcha_response:
-        #         data = {
-        #             "secret": app.config["RECAPTCHA_SECRET_KEY"],
-        #             "response": recaptcha_response,
-        #         }
-        #         google_response = requests.post(
-        #             "https://www.google.com/recaptcha/api/siteverify",
-        #             data=data,
-        #         )
-        #         google_response_json = google_response.json()
-        #         print("reCAPTCHA response exists")
-        #         if not google_response_json["success"]:
-        #             print("Invalid reCAPTCHA response")
-        #             return "Invalid reCAPTCHA. Please try again.", 400
 
         session_id = session["session_id"]
 
@@ -222,7 +178,7 @@ def index():
     return render_template("index.html")
 
 
-def process_files_background(session_id):
+def process_files_background(session_id, out_id):
     with app.app_context():
         output_dir = os.path.join(app.config["OUTPUT_TEMP_FOLDER"], session_id)
         upload_dir = os.path.join(app.config["UPLOAD_FOLDER"], session_id)
@@ -264,12 +220,16 @@ def process_files_background(session_id):
                     type="process_update",
                 )
 
-            shutil.make_archive(f"{final_dir}/output", "zip", output_dir)
+            shutil.make_archive(
+                f"{final_dir}/output_{out_id}", "zip", output_dir
+            )
 
             sse.publish(
                 {"message": "Processing complete", "status": "complete"},
                 type="process_update",
             )
+
+            return out_id
         except Exception as e:
             print(f"Exception: {type(e)}\n{e.args}")
             sse.publish({"message": str(e)}, type="process_update")
@@ -278,11 +238,17 @@ def process_files_background(session_id):
 @app.route("/process", methods=["POST"])
 def process_files():
     session_id = session.get("session_id")
+    out_id = str(int(time.time()))
+    session["out_id"] = out_id
     if is_prod:
-        process_files_background(session_id)
+        process_files_background(session_id, out_id)
     else:
         threading.Thread(
-            target=process_files_background, args=(session_id,)
+            target=process_files_background,
+            args=(
+                session_id,
+                out_id,
+            ),
         ).start()
     return Response("Processing started.", 202)
 
@@ -294,11 +260,44 @@ def download_file():
     try:
         return send_from_directory(
             directory=final_dir,
-            path="output.zip",
+            path=f"output_{session['out_id']}.zip",
             as_attachment=True,
         )
     except FileNotFoundError:
         abort(404)
+
+
+@app.route("/retrieve", methods=["GET"])
+def retrieve_file():
+    email_address = request.args.get("email")
+    token = request.args.get("token")
+
+    if email_address and token:
+        container = get_cdb_container()
+
+        item = container.read_item(
+            item=email_address, partition_key=EMAIL_PARTITION_KEY
+        )
+
+        if item["secret"] != token:
+            return "Bad secret", 400
+
+        if not item["is_verified"]:
+            return "Email address not verified", 400
+
+        item["send_count"] += 1
+
+        container.upsert_item(item)
+
+        try:
+            return send_file(
+                item["download_link"],
+                as_attachment=True,
+            )
+        except FileNotFoundError:
+            abort(404)
+    else:
+        return "Invalid email validation request", 400
 
 
 @app.route("/delete-file", methods=["DELETE"])
@@ -324,7 +323,7 @@ def reset_files():
     output_dir = os.path.join(app.config["OUTPUT_TEMP_FOLDER"], session_id)
 
     shutil.rmtree(output_dir)
-    # os.makedirs(output_dir)
+
     return "", 204
 
 
@@ -343,16 +342,41 @@ def email_user():
 
     container = get_cdb_container()
 
+    token = generate_random_key()
+
     try:
         item = container.read_item(
             item=email_address, partition_key=EMAIL_PARTITION_KEY
         )
-    except CosmosHttpResponseError as e:
-        final_dir = os.path.join(
-            app.config["FINAL_FOLDER"], session_id, "output.zip"
+
+        if not item["is_verified"]:
+            return "Email address not verified", 400
+
+        item["secret"] = token
+        item["send_count"] += 1
+
+        container.upsert_item(item)
+
+        download_url = url_for(
+            "retrieve",
+            email=email_address,
+            token=token,
+            _external=True,
+            _scheme="https",
         )
 
-        token = generate_random_key()
+        content = f"Please click the following link to download your file:\n{download_url}"
+
+        send_email(email_address, content, "DS2LV Download Link")
+
+    except CosmosHttpResponseError as e:
+        out_id = session.get("out_id")
+
+        assert out_id
+
+        final_dir = os.path.join(
+            app.config["FINAL_FOLDER"], session_id, f"output_{out_id}.zip"
+        )
 
         new_item = {
             "id": email_address,
@@ -366,17 +390,23 @@ def email_user():
 
         container.create_item(new_item)
 
+        validation_url = url_for(
+            "validate_email",
+            email=email_address,
+            token=token,
+            _external=True,
+            _scheme="https",
+        )
+
         # Send validation email
         content = f"This is the first time we're seeing this email address.\n\n \
             Please click the validation link below to validate your email and access your download\n \
             This is a one time step.\n\n \
-            https://ds2lv.synlective.com/validate?email={email_address}&token={token}"
+            {validation_url}"
 
         send_email(email_address, content, "DS2LV Email Verification")
 
         return "", 201
-
-    print(item)
 
     return "", 200
 
@@ -386,7 +416,6 @@ def validate_email():
     email_address = request.args.get("email")
     token = request.args.get("token")
 
-    # Example validation logic
     if email_address and token:
         container = get_cdb_container()
 
@@ -400,9 +429,19 @@ def validate_email():
         item["is_verified"] = True
         item["send_count"] += 1
 
-        dl_link = item["download_link"]
-
         container.upsert_item(item)
+
+        download_url = url_for(
+            "retrieve",
+            email=email_address,
+            token=token,
+            _external=True,
+            _scheme="https",
+        )
+
+        content = f"Please click the following link to download your file:\n{download_url}"
+
+        send_email(email_address, content, "DS2LV Download Link")
 
         return render_template("success.html")
     else:
