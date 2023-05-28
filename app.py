@@ -129,7 +129,7 @@ def index():
         if is_prod:
             recaptcha_response = request.form.get("g-recaptcha-response")
         if "session_id" not in session:
-            if recaptcha_response and not is_prod:
+            if recaptcha_response and is_prod:
                 data = {
                     "secret": app.config["RECAPTCHA_SECRET_KEY"],
                     "response": recaptcha_response,
