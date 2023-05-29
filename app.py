@@ -402,7 +402,7 @@ def email_user():
         content = f"This is the first time we're seeing this email address.\n\n \
             Please click the validation link below to validate your email and access your download\n \
             This is a one time step.\n\n \
-            {validation_url}"
+            {{ '{validation_url}' | safe }}"
 
         send_email(email_address, content, "DS2LV Email Verification")
 
@@ -439,7 +439,7 @@ def validate_email():
             _scheme="https",
         )
 
-        content = f"Please click the following link to download your file:\n{download_url}"
+        content = f"Please click the following link to download your file:\n{{ '{download_url}' | safe }}"
 
         send_email(email_address, content, "DS2LV Download Link")
 
