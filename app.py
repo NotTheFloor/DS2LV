@@ -358,7 +358,7 @@ def email_user():
         container.upsert_item(item)
 
         download_url = url_for(
-            "retrieve",
+            "retrieve_file",
             email=email_address,
             token=token,
             _external=True,
@@ -432,7 +432,7 @@ def validate_email():
         container.upsert_item(item)
 
         download_url = url_for(
-            "retrieve",
+            "retrieve_file",
             email=email_address,
             token=token,
             _external=True,
