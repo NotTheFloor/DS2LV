@@ -129,6 +129,9 @@ def index():
         if is_prod:
             recaptcha_response = request.form.get("g-recaptcha-response")
         if "session_id" not in session:
+            session_id = str(uuid.uuid4())
+            session["session_id"] = session_id
+
             if recaptcha_response and is_prod:
                 data = {
                     "secret": app.config["RECAPTCHA_SECRET_KEY"],
@@ -146,9 +149,6 @@ def index():
             elif is_prod:
                 print("No reCAPTCHA response")
                 return "No reCAPTCHA. Please try again.", 400
-
-            session_id = str(uuid.uuid4())
-            session["session_id"] = session_id
 
         session_id = session["session_id"]
 
