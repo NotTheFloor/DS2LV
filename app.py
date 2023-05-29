@@ -309,7 +309,6 @@ def download_page():
             email=email_address,
             token=token,
             _external=False,
-            _scheme="https",
         )
 
         return render_template("download.html", download_url=download_url)
