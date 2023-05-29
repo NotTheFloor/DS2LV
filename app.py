@@ -122,34 +122,52 @@ def feedback():
     )
 
 
+@app.route("/recap", methods=["POST"])
+def process_recaptcha():
+    if "session_id" not in session:
+        session_id = str(uuid.uuid4())
+        session["session_id"] = session_id
+
+    if is_prod:
+        data = request.get_json()
+        recaptcha_response = data.get("g-recaptcha-response")
+        # recaptcha_response = request.form.get("g-recaptcha-response")
+
+        if recaptcha_response:
+            data = {
+                "secret": app.config["RECAPTCHA_SECRET_KEY"],
+                "response": recaptcha_response,
+            }
+            google_response = requests.post(
+                "https://www.google.com/recaptcha/api/siteverify",
+                data=data,
+            )
+            google_response_json = google_response.json()
+            if not google_response_json["success"]:
+                print("Invalid reCAPTCHA response")
+                return "Invalid reCAPTCHA. Please try again.", 400
+        else:
+            print("No reCAPTCHA response")
+            return "No reCAPTCHA. Please try again.", 400
+
+    session["valid"] = True
+
+    return "", 200
+
+
 @app.route("/", methods=["GET", "POST"])
 def index():
-    if request.method == "POST":
-        # reCAPTCHA validation
-        recaptcha_response = None
-        if is_prod:
-            recaptcha_response = request.form.get("g-recaptcha-response")
-        if "session_id" not in session:
-            session_id = str(uuid.uuid4())
-            session["session_id"] = session_id
+    if "session_id" not in session:
+        session_id = str(uuid.uuid4())
+        session["session_id"] = session_id
 
-            if recaptcha_response and is_prod:
-                data = {
-                    "secret": app.config["RECAPTCHA_SECRET_KEY"],
-                    "response": recaptcha_response,
-                }
-                google_response = requests.post(
-                    "https://www.google.com/recaptcha/api/siteverify",
-                    data=data,
-                )
-                google_response_json = google_response.json()
-                print("reCAPTCHA response exists")
-                if not google_response_json["success"]:
-                    print("Invalid reCAPTCHA response")
-                    return "Invalid reCAPTCHA. Please try again.", 400
-            elif is_prod:
-                print("No reCAPTCHA response")
-                return "No reCAPTCHA. Please try again.", 400
+    if not is_prod:
+        session["valid"] = True
+
+    if request.method == "POST":
+        if "valid" not in session:
+            print("reCaptcha no verified")
+            return "reCaptcha no verified", 401
 
         session_id = session["session_id"]
 

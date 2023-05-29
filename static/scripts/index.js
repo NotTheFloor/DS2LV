@@ -1,6 +1,31 @@
-var rcSuccess = function () {
-    document.getElementById("uploadFileInput").disabled = false;
-    document.getElementById("rc-div").hidden = true;
+var rcSuccess = function (result) {
+    // Create the request body
+    const requestBody = {
+        'g-recaptcha-response': result,
+    };
+
+    // Validate recap
+    fetch("/recap", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+    })
+        .then((response) => {
+            if (response.ok) {
+                document.getElementById("uploadFileInput").disabled = false;
+                document.getElementById("rc-div").hidden = true;
+
+            } else {
+                // Should do additional error reporting here
+                console.error("Error recap, status code: " + response.status);
+            }
+        })
+        .catch((error) => {
+            console.error("Error:", error);
+        });
+
 };
 
 function formatFileSize(bytes) {
@@ -181,16 +206,16 @@ document.addEventListener("DOMContentLoaded", (event) => {
             }
 
             // Include g-recaptcha-response in your request
-            const recaptchaResponse = grecaptcha.getResponse();
+            // const recaptchaResponse = grecaptcha.getResponse();
 
-            if (recaptchaResponse.length === 0
+            /*if (recaptchaResponse.length === 0
                 && !document.getElementById("rc-div").hidden
                 && window.location.hostname !== "127.0.0.1") {
                 fileUploadError.innerText = "Please complete the reCAPTCHA";
                 fileUploadError.hidden = false;
                 fileUploadError.style.color = "#FFAAAA";
                 return;
-            }
+            }*/
 
             openProcessing += 1;
             processButton.disabled = true;
@@ -201,9 +226,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
             const formData = new FormData();
             formData.append("file", files[i]);
 
-            if (recaptchaResponse) {
-                formData.append("g-recaptcha-response", recaptchaResponse);
-            }
+            // if (recaptchaResponse) {
+            //     formData.append("g-recaptcha-response", recaptchaResponse);
+            // }
 
             // Use XMLHttpRequest instead of fetch
             const xhr = new XMLHttpRequest();
