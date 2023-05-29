@@ -365,7 +365,7 @@ def email_user():
             _scheme="https",
         )
 
-        content = f"Please click the following link to download your file:\n{download_url}"
+        content = f"Please click the following link to download your file:\n{{ '{download_url}' | safe }}"
 
         send_email(email_address, content, "DS2LV Download Link")
 
