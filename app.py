@@ -85,7 +85,8 @@ def get_cdb_container():
 def send_email(
     to_email, content, subject, from_email="contact@synlective.com"
 ):
-    content = bleach.clean(content)
+    # Was causing & to become &amp; breaking Flask routing
+    # content = bleach.clean(content)
 
     # Prepare the email
     message = Mail(
@@ -365,7 +366,7 @@ def email_user():
             _scheme="https",
         )
 
-        content = f"Please click the following link to download your file:\n{{ '{download_url}' | safe }}"
+        content = f"Please click the following link to download your file:\n{download_url}"
 
         send_email(email_address, content, "DS2LV Download Link")
 
@@ -399,10 +400,10 @@ def email_user():
         )
 
         # Send validation email
-        content = f"This is the first time we're seeing this email address.\n\n \
-            Please click the validation link below to validate your email and access your download\n \
-            This is a one time step.\n\n \
-            {{ '{validation_url}' | safe }}"
+        content = "This is the first time we're seeing this email address.\n\n"
+        content += "Please click the validation link below to validate your email and access your download\n"
+        content += "This is a one time step.\n\n"
+        content += f"{validation_url}"
 
         send_email(email_address, content, "DS2LV Email Verification")
 
@@ -439,7 +440,7 @@ def validate_email():
             _scheme="https",
         )
 
-        content = f"Please click the following link to download your file:\n{{ '{download_url}' | safe }}"
+        content = f"Please click the following link to download your file:\n{download_url}"
 
         send_email(email_address, content, "DS2LV Download Link")
 
