@@ -268,6 +268,35 @@ def download_file():
         abort(404)
 
 
+@app.route("/download_page", methods=["GET"])
+def download_page():
+    email_address = request.args.get("email")
+    token = request.args.get("token")
+
+    if email_address and token:
+        container = get_cdb_container()
+
+        item = container.read_item(
+            item=email_address, partition_key=EMAIL_PARTITION_KEY
+        )
+
+        if item["secret"] != token:
+            return "Bad secret", 400
+
+        if not item["is_verified"]:
+            return "Email address not verified", 400
+
+        download_url = url_for(
+            "retrieve_file",
+            email=email_address,
+            token=token,
+            _external=False,
+            _scheme="https",
+        )
+
+        return render_template("download.html", download_url=download_url)
+
+
 @app.route("/retrieve", methods=["GET"])
 def retrieve_file():
     email_address = request.args.get("email")
@@ -359,7 +388,7 @@ def email_user():
         container.upsert_item(item)
 
         download_url = url_for(
-            "retrieve_file",
+            "download_page",
             email=email_address,
             token=token,
             _external=True,
@@ -433,7 +462,7 @@ def validate_email():
         container.upsert_item(item)
 
         download_url = url_for(
-            "retrieve_file",
+            "download_page",
             email=email_address,
             token=token,
             _external=True,
