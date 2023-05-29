@@ -54,6 +54,37 @@ document.addEventListener("DOMContentLoaded", (event) => {
         emailDialog.close();
     });
 
+    var resetPage = function () {
+        // Remove all items from the 'Processed Files' list
+        while (processedFilesList.firstChild) {
+            processedFilesList.removeChild(processedFilesList.firstChild);
+        }
+
+        // Remove all items from the 'Files' list
+        while (filesList.firstChild) {
+            filesList.removeChild(filesList.firstChild);
+        }
+
+        // Disable Download button
+        downloadButton.disabled = true;
+        emailResultsButton.disabled = true;
+        document.getElementById("uploadFileInput").value = "";
+        document.getElementById("processStatus").innerText = "";
+
+        // Request the server to reset the files and folders
+        fetch("/reset", { method: "POST" })
+            .then((response) => {
+                if (response.ok) {
+                    console.log("Reset successful.");
+                } else {
+                    console.error("Error resetting files and folders, status code: " + response.status);
+                }
+            })
+            .catch((error) => {
+                console.error("Error:", error);
+            });
+    };
+
     emailForm.addEventListener("submit", (event) => {
         event.preventDefault();
         const emailInput = document.getElementById("emailAddress");
@@ -89,6 +120,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 // Handle network or other errors
                 console.error("Error sending email:", error);
             });
+
+        resetPage()
     });
 
     // Send feedback when the submit button is clicked
@@ -239,6 +272,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 });
             }
             if (data.status === "complete") {
+                emailResultsButton.disabled = false;
                 downloadButton.disabled = false;
                 processButton.disabled = true;
                 source.close();
@@ -262,32 +296,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
         event.preventDefault();
         window.location.href = "/download";
 
-        // Remove all items from the 'Processed Files' list
-        while (processedFilesList.firstChild) {
-            processedFilesList.removeChild(processedFilesList.firstChild);
-        }
-
-        // Remove all items from the 'Files' list
-        while (filesList.firstChild) {
-            filesList.removeChild(filesList.firstChild);
-        }
-
-        // Disable Download button
-        downloadButton.disabled = true;
-        document.getElementById("uploadFileInput").value = "";
-        document.getElementById("processStatus").innerText = "";
-
-        // Request the server to reset the files and folders
-        fetch("/reset", { method: "POST" })
-            .then((response) => {
-                if (response.ok) {
-                    console.log("Reset successful.");
-                } else {
-                    console.error("Error resetting files and folders, status code: " + response.status);
-                }
-            })
-            .catch((error) => {
-                console.error("Error:", error);
-            });
+        resetPage();
     });
 });
