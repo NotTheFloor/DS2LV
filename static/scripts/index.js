@@ -43,9 +43,12 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const downloadButton = document.getElementById("downloadButton");
     const fileInput = document.querySelector('input[type="file"]');
     const filesList = document.getElementById('filesBody');
-    const processedFilesList = document.getElementById("processedFiles");
+    //const processedFilesList = document.getElementById("processedFiles");
     const fileUploadError = document.getElementById("fileUploadError");
+    const processStatus = document.getElementById("processStatus");
     let openProcessing = 0;
+
+    processStatus.innerText = "Please select files to get started";
 
     const emailForm = document.querySelector("#emailDialog form");
     const emailResultsButton = document.getElementById("emailResultsButton");
@@ -81,9 +84,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     var resetPage = function () {
         // Remove all items from the 'Processed Files' list
-        while (processedFilesList.firstChild) {
-            processedFilesList.removeChild(processedFilesList.firstChild);
-        }
+        // while (processedFilesList.firstChild) {
+        //     processedFilesList.removeChild(processedFilesList.firstChild);
+        // }
 
         // Remove all items from the 'Files' list
         while (filesList.firstChild) {
@@ -94,7 +97,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
         downloadButton.disabled = true;
         emailResultsButton.disabled = true;
         document.getElementById("uploadFileInput").value = "";
-        document.getElementById("processStatus").innerText = "";
+        processStatus.innerText = "";
 
         // Request the server to reset the files and folders
         fetch("/reset", { method: "POST" })
@@ -181,6 +184,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
     // Handle file selection
     fileInput.addEventListener("change", function (event) {
         const files = event.target.files;
+
+        processStatus.innerText = "Please wait for files to finish uploading";
+
         for (let i = 0; i < files.length; i++) {
             const filename = files[i].name;
             const filesize = files[i].size; // Add this line to get file size
@@ -236,7 +242,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
                     sortTableRows();
 
-                    if (openProcessing <= 0) processButton.disabled = false;
+                    if (openProcessing <= 0) {
+                        processButton.disabled = false;
+                        processStatus.innerText = "Uploading complete. Ready to Process";
+                    }
                 } else {
                     console.error("Error uploading file, status code: " + xhr.status);
                     tdStatus.textContent = "Error";
@@ -281,22 +290,22 @@ document.addEventListener("DOMContentLoaded", (event) => {
     processButton.addEventListener("click", (event) => {
         event.preventDefault();
 
-        document.getElementById("processStatus").innerText = "Starting...";
+        processStatus.innerText = "Starting...";
 
         var source = new EventSource("/stream");
         source.addEventListener('process_update', function (event) {
             var data = JSON.parse(event.data);
             if (data.message) {
-                document.getElementById("processStatus").innerText = data.message;
+                processStatus.innerText = data.message;
             }
             if (data.status === "fileComplete") {
                 // Create new li items for the output
                 // files and add them to the 'Processed Files' list
-                data.outputFiles.forEach((filename) => {
-                    const li = document.createElement("li");
-                    li.textContent = filename;
-                    processedFilesList.appendChild(li);
-                });
+                // data.outputFiles.forEach((filename) => {
+                //     const li = document.createElement("li");
+                //     li.textContent = filename;
+                //     processedFilesList.appendChild(li);
+                // });
 
 
                 const rows = document.querySelectorAll("#filesBody tr");

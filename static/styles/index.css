@@ -51,6 +51,7 @@ button:disabled {
 
 #processStatus {
     margin-top: 30px;
+    margin-bottom: 30px;
     font-weight: bold;
 }
 
