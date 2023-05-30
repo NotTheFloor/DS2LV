@@ -90,7 +90,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
         downloadButton.disabled = true;
         emailResultsButton.disabled = true;
         document.getElementById("uploadFileInput").value = "";
-        processStatus.innerText = "";
+        processStatus.innerText = "Please select files to get started";
+        document.getElementById("uploadFileInput").disabled = false;
 
         // Request the server to reset the files and folders
         fetch("/reset", { method: "POST" })
@@ -175,12 +176,17 @@ document.addEventListener("DOMContentLoaded", (event) => {
     // Handle file selection
     fileInput.addEventListener("change", function (event) {
         const files = event.target.files;
+        var totalFileSize = 0;
+        var totalUploaded = 0;
 
-        processStatus.innerText = "Please wait for files to finish uploading";
+        processStatus.innerText = "Please wait for files to finish uploading (0%)";
 
         for (let i = 0; i < files.length; i++) {
             const filename = files[i].name;
             const filesize = files[i].size;
+            var lastLoaded = 0;
+            totalFileSize += files[i].size;
+
 
             // Create a table row and cells for filename, filesize and status
             const tr = document.createElement("tr");
@@ -221,8 +227,12 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 if (e.lengthComputable) {
                     // Calculate the percentage of the upload
                     const percentComplete = Math.round((e.loaded / e.total) * 100);
+                    totalUploaded += e.loaded - lastLoaded;
+                    lastLoaded = e.loaded;
                     // Update the status cell with the progress
                     tdStatus.textContent = "Uploading (" + percentComplete + "%)";
+                    const totalPercentComplete = Math.round((totalUploaded / totalFileSize) * 100);
+                    processStatus.innerText = "Please wait for files to finish uploading (0%)";
                 }
             }, false);
 
@@ -286,6 +296,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     processButton.addEventListener("click", (event) => {
         event.preventDefault();
+
+        document.getElementById("uploadFileInput").disabled = true;
 
         processStatus.innerText = "Starting...";
 
