@@ -10,6 +10,9 @@ archive/*
 final/*
 !final/.gitkeep
 
+output_temp/*
+!output_temp/.gitkeep
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
