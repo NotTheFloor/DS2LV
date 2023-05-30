@@ -205,18 +205,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 continue;
             }
 
-            // Include g-recaptcha-response in your request
-            // const recaptchaResponse = grecaptcha.getResponse();
-
-            /*if (recaptchaResponse.length === 0
-                && !document.getElementById("rc-div").hidden
-                && window.location.hostname !== "127.0.0.1") {
-                fileUploadError.innerText = "Please complete the reCAPTCHA";
-                fileUploadError.hidden = false;
-                fileUploadError.style.color = "#FFAAAA";
-                return;
-            }*/
-
             openProcessing += 1;
             processButton.disabled = true;
 
@@ -225,10 +213,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
             // Upload the file
             const formData = new FormData();
             formData.append("file", files[i]);
-
-            // if (recaptchaResponse) {
-            //     formData.append("g-recaptcha-response", recaptchaResponse);
-            // }
 
             // Use XMLHttpRequest instead of fetch
             const xhr = new XMLHttpRequest();
@@ -281,19 +265,26 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 document.getElementById("processStatus").innerText = data.message;
             }
             if (data.status === "fileComplete") {
-                // Remove the li item for the processed file
-                Array.from(filesList.children).forEach((li) => {
-                    if (li.textContent.startsWith(data.filename)) {
-                        li.remove();
-                    }
-                });
-
                 // Create new li items for the output
                 // files and add them to the 'Processed Files' list
                 data.outputFiles.forEach((filename) => {
                     const li = document.createElement("li");
                     li.textContent = filename;
                     processedFilesList.appendChild(li);
+                });
+
+
+                const rows = document.querySelectorAll("#filesBody tr");
+
+                rows.forEach((row) => {
+                    const fileNameCell = row.querySelector("td:first-child");
+                    console.log('----');
+                    console.log(fileNameCell.textContent);
+                    console.log(data.inputFile);
+
+                    if (fileNameCell.textContent === data.inputFile) {
+                        row.classList.add("completed");
+                    }
                 });
             }
             if (data.status === "complete") {

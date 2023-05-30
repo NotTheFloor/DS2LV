@@ -209,8 +209,9 @@ def process_files_background(session_id, out_id):
         try:
             for filename in os.listdir(upload_dir):
                 if filename[0] == ".":
-                    print(f"Skipping file {filename}")
                     continue
+
+                print(filename)
 
                 file_path = os.path.join(upload_dir, filename)
                 before_files = ds2logreader.get_unique_files(output_dir)
@@ -219,6 +220,7 @@ def process_files_background(session_id, out_id):
                 output_files = list(after_files - before_files)
 
                 if result != "":
+                    print(f"Error processing {filename}: {reason}")
                     sse.publish(
                         {"message": f"Error processing {filename}: {result}"},
                         type="process_update",
@@ -234,6 +236,7 @@ def process_files_background(session_id, out_id):
                     {
                         "message": f"Processing complete for {filename}",
                         "outputFiles": output_files,
+                        "inputFile": filename,
                         "status": "fileComplete",
                     },
                     type="process_update",
@@ -401,6 +404,12 @@ def email_user():
 
         item["secret"] = token
         item["send_count"] += 1
+
+        final_dir = os.path.join(
+            app.config["FINAL_FOLDER"], session_id, f"output_{out_id}.zip"
+        )
+
+        item["download_link"] = final_dir
 
         container.upsert_item(item)
 

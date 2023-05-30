@@ -96,7 +96,7 @@ th {
     width: 10ch;
 }
 
-tr:nth-child(even) {
+tr:not(.completed):nth-child(even) {
     background-color: #f2f2f2;
 }
 
@@ -108,4 +108,15 @@ tr:nth-child(even) {
 
 #emailAddress {
     width: 48ch;
+}
+
+.completed {
+    background-color: #a5d6a7;
+    /* Replace with your desired green color */
+}
+
+.table-container {
+    max-height: 300px;
+    /* Adjust the height as needed */
+    overflow-y: auto;
 }
