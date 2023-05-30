@@ -97,7 +97,7 @@ th {
     width: 10ch;
 }
 
-tr:not(.completed):nth-child(even) {
+tr:not(.uploading):not(.error):not(.completed):not(.processed):nth-child(even) {
     background-color: #f2f2f2;
 }
 
@@ -111,8 +111,23 @@ tr:not(.completed):nth-child(even) {
     width: 48ch;
 }
 
+.processed {
+    background-color: #d5dff2;
+    /* Replace with your desired green color */
+}
+
+.uploading {
+    background-color: #f4f7ac;
+    /* Replace with your desired green color */
+}
+
+.error {
+    background-color: #eaacac;
+    /* Replace with your desired green color */
+}
+
 .completed {
-    background-color: #a5d6a7;
+    background-color: #c2e5c3;
     /* Replace with your desired green color */
 }
 

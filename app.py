@@ -211,8 +211,6 @@ def process_files_background(session_id, out_id):
                 if filename[0] == ".":
                     continue
 
-                print(filename)
-
                 file_path = os.path.join(upload_dir, filename)
                 before_files = ds2logreader.get_unique_files(output_dir)
                 result = ds2.process_file(file_path)
@@ -220,7 +218,7 @@ def process_files_background(session_id, out_id):
                 output_files = list(after_files - before_files)
 
                 if result != "":
-                    print(f"Error processing {filename}: {reason}")
+                    print(f"Error processing {filename}: {result}")
                     sse.publish(
                         {"message": f"Error processing {filename}: {result}"},
                         type="process_update",

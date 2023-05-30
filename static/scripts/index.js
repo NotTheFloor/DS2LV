@@ -43,12 +43,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const downloadButton = document.getElementById("downloadButton");
     const fileInput = document.querySelector('input[type="file"]');
     const filesList = document.getElementById('filesBody');
-    //const processedFilesList = document.getElementById("processedFiles");
-    const fileUploadError = document.getElementById("fileUploadError");
     const processStatus = document.getElementById("processStatus");
-    let openProcessing = 0;
-
-    processStatus.innerText = "Please select files to get started";
 
     const emailForm = document.querySelector("#emailDialog form");
     const emailResultsButton = document.getElementById("emailResultsButton");
@@ -58,6 +53,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
     // Get a reference to the dialog and the submit button
     var dialog = document.getElementById('feedbackDialog');
     var feedbackSubmit = document.getElementById('feedbackSubmit');
+
+    let openProcessing = 0;
+    processStatus.innerText = "Please select files to get started";
 
     // Open the dialog when the feedback button is clicked
     document.getElementById('feedbackButton').onclick = function () {
@@ -83,11 +81,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
     });
 
     var resetPage = function () {
-        // Remove all items from the 'Processed Files' list
-        // while (processedFilesList.firstChild) {
-        //     processedFilesList.removeChild(processedFilesList.firstChild);
-        // }
-
         // Remove all items from the 'Files' list
         while (filesList.firstChild) {
             filesList.removeChild(filesList.firstChild);
@@ -117,8 +110,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
         event.preventDefault();
         const emailInput = document.getElementById("emailAddress");
         const email = emailInput.value;
-
-        // Validate the email address on the client-side if needed
 
         // Create the request body
         const requestBody = {
@@ -189,7 +180,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
         for (let i = 0; i < files.length; i++) {
             const filename = files[i].name;
-            const filesize = files[i].size; // Add this line to get file size
+            const filesize = files[i].size;
 
             // Create a table row and cells for filename, filesize and status
             const tr = document.createElement("tr");
@@ -198,7 +189,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
             const tdStatus = document.createElement("td");
 
             tdName.textContent = filename;
-            tdSize.textContent = formatFileSize(filesize); // You can format the size as needed
+            tdSize.textContent = formatFileSize(filesize);
 
             tr.appendChild(tdName);
             tr.appendChild(tdSize);
@@ -207,7 +198,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
             if (!filename.endsWith(".csv")) {
                 tdStatus.textContent = "Error: CSV extensions only";
-                tr.style.color = "#FFAAAA";
+                tr.classList.add("error");
                 continue;
             }
 
@@ -215,6 +206,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
             processButton.disabled = true;
 
             tdStatus.textContent = "Uploading";
+            tr.classList.remove("error");
+            tr.classList.add("uploading");
 
             // Upload the file
             const formData = new FormData();
@@ -238,6 +231,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 // Update the status cell based on the HTTP status code
                 if (xhr.status == 200) {
                     tdStatus.textContent = "Complete";
+                    tr.classList.remove("uploading");
+                    tr.classList.add("completed");
                     openProcessing -= 1;
 
                     sortTableRows();
@@ -256,6 +251,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
             xhr.addEventListener('error', function (e) {
                 console.error("Error:", e);
                 tdStatus.textContent = "Error";
+                tr.classList.remove("uploading");
+                tr.classList.add("error");
             });
 
             // Open and send the request
@@ -299,25 +296,16 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 processStatus.innerText = data.message;
             }
             if (data.status === "fileComplete") {
-                // Create new li items for the output
-                // files and add them to the 'Processed Files' list
-                // data.outputFiles.forEach((filename) => {
-                //     const li = document.createElement("li");
-                //     li.textContent = filename;
-                //     processedFilesList.appendChild(li);
-                // });
-
-
                 const rows = document.querySelectorAll("#filesBody tr");
 
                 rows.forEach((row) => {
                     const fileNameCell = row.querySelector("td:first-child");
-                    console.log('----');
-                    console.log(fileNameCell.textContent);
-                    console.log(data.inputFile);
+                    const statusCell = row.querySelector("td:nth-child(3)");
 
                     if (fileNameCell.textContent === data.inputFile) {
-                        row.classList.add("completed");
+                        row.classList.remove("completed");
+                        row.classList.add("processed");
+                        statusCell.textContent = "Processed";
                     }
                 });
             }
@@ -331,9 +319,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
         fetch("/process", { method: "POST" })
             .then((response) => {
-                if (response.status === 202) {
-                    console.log(":)");
-                } else {
+                if (response.status !== 202) {
                     console.error(
                         "Error starting processing, status code: " + response.status
                     );
