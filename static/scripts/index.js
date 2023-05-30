@@ -234,6 +234,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     tdStatus.textContent = "Complete";
                     openProcessing -= 1;
 
+                    sortTableRows();
+
                     if (openProcessing <= 0) processButton.disabled = false;
                 } else {
                     console.error("Error uploading file, status code: " + xhr.status);
@@ -252,6 +254,29 @@ document.addEventListener("DOMContentLoaded", (event) => {
             xhr.send(formData);
         }
     });
+
+    // Sort the table rows based on the upload status
+    function sortTableRows() {
+        const tableBody = document.getElementById("filesBody");
+        const rows = Array.from(tableBody.getElementsByTagName("tr"));
+
+        rows.sort(function (a, b) {
+            const aStatus = a.cells[2].textContent;
+            const bStatus = b.cells[2].textContent;
+
+            if (aStatus === "Complete" && bStatus !== "Complete") {
+                return 1;
+            } else if (aStatus !== "Complete" && bStatus === "Complete") {
+                return -1;
+            } else {
+                return 0;
+            }
+        });
+
+        rows.forEach(function (row) {
+            tableBody.appendChild(row);
+        });
+    }
 
     processButton.addEventListener("click", (event) => {
         event.preventDefault();
