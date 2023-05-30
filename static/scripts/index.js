@@ -232,7 +232,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     // Update the status cell with the progress
                     tdStatus.textContent = "Uploading (" + percentComplete + "%)";
                     const totalPercentComplete = Math.round((totalUploaded / totalFileSize) * 100);
-                    processStatus.innerText = "Please wait for files to finish uploading (0%)";
+                    processStatus.innerText = "Please wait for files to finish uploading (" + totalPercentComplete + "%)";
                 }
             }, false);
 
