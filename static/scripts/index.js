@@ -346,4 +346,23 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
         resetPage();
     });
+
+    function deleteFile(filename) {
+        // Make a request to the delete-file endpoint with the filename as an argument
+        fetch("/delete-file?filename=" + encodeURIComponent(filename), {
+            method: "DELETE"
+        })
+            .then((response) => {
+                if (response.ok) {
+                    // Delete the table row from the DOM
+                    tr.remove();
+                    console.log("File deleted successfully.");
+                } else {
+                    console.error("Error deleting file, status code: " + response.status);
+                }
+            })
+            .catch((error) => {
+                console.error("Error:", error);
+            });
+    }
 });

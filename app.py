@@ -13,8 +13,9 @@ from flask import (
 )
 from flask_sse import sse
 import dotenv
-import bleach
-import os, shutil, threading, uuid, requests, secrets, string, re, time
+
+# import bleach
+import os, shutil, threading, uuid, requests, secrets, string, re, time, unicodedata
 from datetime import timedelta
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
@@ -121,6 +122,8 @@ def feedback():
         "contact@synlective.com", feedback, "DS2LV - New feedback received"
     )
 
+    return "Feedback received successfully"
+
 
 @app.route("/recap", methods=["POST"])
 def process_recaptcha():
@@ -189,9 +192,29 @@ def index():
         final_dir = os.path.join(app.config["FINAL_FOLDER"], session_id)
         os.makedirs(final_dir, exist_ok=True)
 
+        # Define a regular expression pattern to match unsafe characters
+        unsafe_chars_pattern = re.compile(r'[\\/:*?"<>|]')
+
         for file in request.files.getlist("file"):
-            filename = file.filename
-            file.save(os.path.join(upload_dir, filename))
+            original_filename = file.filename
+            # Normalize the filename
+            normalized_filename = (
+                unicodedata.normalize("NFKD", original_filename)
+                .encode("ascii", "ignore")
+                .decode("utf-8")
+            )
+            # Remove unsafe characters from the filename
+            sanitized_filename = re.sub(
+                unsafe_chars_pattern, "", normalized_filename
+            )
+            # Limit the filename length if needed
+            sanitized_filename = sanitized_filename[
+                :255
+            ]  # Example: Limit to 255 characters
+
+            # Save the file with the sanitized filename
+            file.save(os.path.join(upload_dir, sanitized_filename))
+
         return redirect(url_for("index"))
 
     return render_template("index.html")
