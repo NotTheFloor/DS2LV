@@ -195,6 +195,19 @@ document.addEventListener("DOMContentLoaded", (event) => {
             const tdSize = document.createElement("td");
             const tdStatus = document.createElement("td");
 
+            if (totalFileSize > 524288000) {
+                tdName.textContent = '';
+                tdSize.textContent = '';
+                tdStatus.textContent = "Error: Total batch size is limited to 500 MB (individual files are limited to 150 MB)";
+                tr.appendChild(tdName);
+                tr.appendChild(tdSize);
+                tr.appendChild(tdStatus);
+                tr.classList.add("error");
+                filesList.appendChild(tr);
+
+                break;
+            }
+
             tdName.textContent = filename;
             tdSize.textContent = formatFileSize(filesize);
 
@@ -202,6 +215,12 @@ document.addEventListener("DOMContentLoaded", (event) => {
             tr.appendChild(tdSize);
             tr.appendChild(tdStatus);
             filesList.appendChild(tr);
+
+            if (filesize > 157286400) {
+                tdStatus.textContent = "Error: File size is too large (max 150 MB)";
+                tr.classList.add("error");
+                continue;
+            }
 
             if (!filename.endsWith(".csv")) {
                 tdStatus.textContent = "Error: CSV extensions only";
