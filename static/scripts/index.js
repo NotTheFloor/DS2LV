@@ -178,13 +178,14 @@ document.addEventListener("DOMContentLoaded", (event) => {
         const files = event.target.files;
         var totalFileSize = 0;
         var totalUploaded = 0;
+        const lastLoaded = Array(files.length).fill(0);
 
         processStatus.innerText = "Please wait for files to finish uploading (0%)";
 
         for (let i = 0; i < files.length; i++) {
             const filename = files[i].name;
             const filesize = files[i].size;
-            var lastLoaded = 0;
+            //var lastLoaded = 0;
             totalFileSize += files[i].size;
 
 
@@ -227,8 +228,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 if (e.lengthComputable) {
                     // Calculate the percentage of the upload
                     const percentComplete = Math.round((e.loaded / e.total) * 100);
-                    totalUploaded += e.loaded - lastLoaded;
-                    lastLoaded = e.loaded;
+                    totalUploaded += e.loaded - lastLoaded[i];
+                    lastLoaded[i] = e.loaded;
                     // Update the status cell with the progress
                     tdStatus.textContent = "Uploading (" + percentComplete + "%)";
                     const totalPercentComplete = Math.round((totalUploaded / totalFileSize) * 100);
