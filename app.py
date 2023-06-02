@@ -416,6 +416,9 @@ def email_user():
     token = generate_random_key()
 
     try:
+        out_id = session.get("out_id")
+        assert out_id
+
         item = container.read_item(
             item=email_address, partition_key=EMAIL_PARTITION_KEY
         )
