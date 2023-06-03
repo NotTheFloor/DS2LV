@@ -195,8 +195,27 @@ def index():
         # Define a regular expression pattern to match unsafe characters
         unsafe_chars_pattern = re.compile(r'[\\/:*?"<>|]')
 
+        total_file_size = 0
         for file in request.files.getlist("file"):
             original_filename = file.filename
+            # Move the file cursor to the end to get the file size
+            file.seek(0, os.SEEK_END)
+            file_size = file.tell()
+            total_file_size += file_size
+
+            # Reset the file cursor back to the beginning for saving the file
+            file.seek(0)
+
+            if total_file_size > 524288000:
+                print(
+                    f"ERROR: User attempted to upload {total_file_size} total bytes"
+                )
+                return "Total files size too large", 401
+
+            if file_size > 157286400:
+                print(f"ERROR: User tried to download {file_size} bytes")
+                return "Files size too large", 401
+
             # Normalize the filename
             normalized_filename = (
                 unicodedata.normalize("NFKD", original_filename)
