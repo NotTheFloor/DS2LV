@@ -16,7 +16,7 @@ import dotenv
 
 # import bleach
 import os, shutil, threading, uuid, requests, secrets, string, re, time, unicodedata
-from datetime import timedelta
+from datetime import timedelta, datetime
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 from azure.cosmos import CosmosClient, PartitionKey
@@ -37,10 +37,12 @@ file_root = os.getenv("FILE_ROOT")
 sendgrid_api_key = os.getenv("SENDGRID_API_KEY")
 key_path = PartitionKey(path="/emailId")
 
-UPLOAD_FOLDER = os.path.join(file_root, "uploads")
+UPLOAD_FOLDER = os.path.join("", "uploads")
 ARCHIVE_FOLDER = os.path.join(file_root, "archive")
-OUTPUT_TEMP_FOLDER = os.path.join(file_root, "output_temp")
+OUTPUT_TEMP_FOLDER = os.path.join("", "output_temp")
 FINAL_FOLDER = os.path.join(file_root, "final")
+
+SYS_LOG_FOLDER = os.path.join(file_root, "logs")
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
@@ -59,6 +61,15 @@ app.config["ARCHIVE_FOLDER"] = ARCHIVE_FOLDER
 app.config["OUTPUT_TEMP_FOLDER"] = OUTPUT_TEMP_FOLDER
 app.config["FINAL_FOLDER"] = FINAL_FOLDER
 app.config["RECAPTCHA_SECRET_KEY"] = os.getenv("RC_SECRET_KEY_V2")
+
+
+def sys_log(msg, filename="std_out.log"):
+    current_datetime = datetime.now()
+    formatted_datetime = current_datetime.strftime("%Y/%m/%d %H:%M:%S")
+    full_path = os.path.join(SYS_LOG_FOLDER, filename)
+
+    with open(full_path, "a") as file:
+        file.write(f"{formatted_datetime} - {msg}\n")
 
 
 def is_valid_email(email):
@@ -100,6 +111,7 @@ def send_email(
     try:
         sg = SendGridAPIClient(sendgrid_api_key)
         response = sg.send(message)
+        sys_log(f"Sent email to {to_email}")
         return jsonify({"message": "Email sent successfully"}), 200
     except Exception as e:
         return (
@@ -163,6 +175,7 @@ def index():
     if "session_id" not in session:
         session_id = str(uuid.uuid4())
         session["session_id"] = session_id
+        sys_log(f"[{request.remote_addr}] - {session_id}", "sessions.log")
 
     if not is_prod:
         session["valid"] = True
@@ -320,12 +333,14 @@ def download_file():
     session_id = session["session_id"]
     final_dir = os.path.join(app.config["FINAL_FOLDER"], session_id)
     try:
+        sys_log(f"{session_id} downloading output_{session['out_id']}.zip")
         return send_from_directory(
             directory=final_dir,
             path=f"output_{session['out_id']}.zip",
             as_attachment=True,
         )
     except FileNotFoundError:
+        sys_log(f"{session_id} file not found error", "errors.log")
         abort(404)
 
 
@@ -342,9 +357,11 @@ def download_page():
         )
 
         if item["secret"] != token:
+            sys_log(f"{email_address} bad secret", "errors.log")
             return "Bad secret", 400
 
         if not item["is_verified"]:
+            sys_log(f"{email_address} not verified", "errors.log")
             return "Email address not verified", 400
 
         download_url = url_for(
@@ -380,13 +397,18 @@ def retrieve_file():
         container.upsert_item(item)
 
         try:
+            sys_log(
+                f"{email_address} downlaoded from email {item['download_link']}"
+            )
             return send_file(
                 item["download_link"],
                 as_attachment=True,
             )
         except FileNotFoundError:
+            sys_log(f"{email_address} file not found error", "errors.log")
             abort(404)
     else:
+        sys_log(f"Invalid email validation request", "errors.log")
         return "Invalid email validation request", 400
 
 
@@ -443,6 +465,7 @@ def email_user():
         )
 
         if not item["is_verified"]:
+            sys_log(f"{email_address} is not verified", "errors.log")
             return "Email address not verified", 400
 
         item["secret"] = token
@@ -524,6 +547,10 @@ def validate_email():
 
         if item["secret"] != token:
             return "Bad secret", 400
+
+        if item["is_verified"]:
+            sys_log(f"{email_address} already verified", "errors.log")
+            return "Already verified", 400
 
         item["is_verified"] = True
         item["send_count"] += 1
