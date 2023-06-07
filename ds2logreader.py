@@ -49,12 +49,12 @@ class DS2LogReader:
 
         with open(filepath, "r") as file:
             # this does not allow flexible input formats
-            # if file_basename == 'ds1.csv':
-            #     in_datetime = datetime
-            # else:
-            in_datetime = datetime.strptime(
-                file_basename.split("_log.csv")[0], self.input_date_format
-            )
+            if file_basename == "ds1.csv":
+                in_datetime = datetime
+            else:
+                in_datetime = datetime.strptime(
+                    file_basename.split("_log.csv")[0], self.input_date_format
+                )
 
             reader = csv.reader(file)
             title = next(reader)  # get the title line
