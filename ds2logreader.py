@@ -51,10 +51,20 @@ class DS2LogReader:
             # this does not allow flexible input formats
             if file_basename == "ds1.csv":
                 in_datetime = datetime
+                pedal_header = "Pedal(%)"
+                eth_header = "Ethanol(%)"
+                gear_header = "Gear(-)"
+                map_header = "Map switch(-)"
+                time_header = "Time(s)"
             else:
                 in_datetime = datetime.strptime(
                     file_basename.split("_log.csv")[0], self.input_date_format
                 )
+                pedal_header = "Pedal(wped_w)(% PED)"
+                eth_header = "Ethanol cont(ethanolpercent)(%)"
+                gear_header = "Gear(gangi)()"
+                map_header = "Map switch(mapswitch)(raw)"
+                time_header = "Time(s)"
 
             reader = csv.reader(file)
             title = next(reader)  # get the title line
