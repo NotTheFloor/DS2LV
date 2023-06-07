@@ -72,11 +72,11 @@ class DS2LogReader:
 
             # get the indexes for various relevent columns
             # this may need to be altered to allow flexible thresholding
-            index = headers.index("Pedal(wped_w)(% PED)")
-            eth_index = headers.index("Ethanol cont(ethanolpercent)(%)")
-            gear_index = headers.index("Gear(gangi)()")
-            map_index = headers.index("Map switch(mapswitch)(raw)")
-            time_index = headers.index("Time(s)")
+            index = headers.index(pedal_header)
+            eth_index = headers.index(eth_header)
+            gear_index = headers.index(gear_header)
+            map_index = headers.index(map_header)
+            time_index = headers.index(time_header)
 
             # Initial data for loop
             meta_data = {"map": -1, "eth": -1, "gears": [], "set_start": None}
