@@ -295,6 +295,15 @@ def process_files_background(session_id, out_id):
                     type="process_update",
                 )
 
+            # If empty dir, then no wot runs
+            files_processed = len(ds2logreader.get_unique_files(output_dir))
+            if files_processed == 0:
+                sse.publish(
+                    {"message": "No wot runs found", "status": "empty"},
+                    type="process_update",
+                )
+                return out_id
+
             shutil.make_archive(
                 f"{final_dir}/output_{out_id}", "zip", output_dir
             )

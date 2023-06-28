@@ -65,7 +65,16 @@
                 <button id="feedbackSubmit" value="submit">Submit</button>
             </menu>
         </form>
-    </dialog>    
+    </dialog>
+    <dialog id="emptyDialog">
+        <form method="dialog">
+            <h1>No WOT Runs Found - No Output</h1>
+            <h3>Ensure pedal is pushed all the way down</h3>
+            <menu>
+                <button type="button" id="emptyButton">OK</button>
+            </menu>
+        </form>
+    </dialog> 
     <script src="{{ url_for('static', filename='scripts/index.js') }}"></script>
 </body>
 </html>

@@ -54,8 +54,12 @@ document.addEventListener("DOMContentLoaded", (event) => {
     var dialog = document.getElementById('feedbackDialog');
     var feedbackSubmit = document.getElementById('feedbackSubmit');
 
+    var emptyDialog = document.getElementById('emptyDialog');
+    const emptyButton = document.getElementById("emptyButton");
+
     let openProcessing = 0;
     processStatus.innerText = "Please select files to get started";
+
 
     // Open the dialog when the feedback button is clicked
     document.getElementById('feedbackButton').onclick = function () {
@@ -71,6 +75,11 @@ document.addEventListener("DOMContentLoaded", (event) => {
         document.getElementById("uploadFileInput").disabled = false;
         document.getElementById("rc-div").hidden = true;
     };
+
+    emptyButton.addEventListener("click", () => {
+        resetPage();
+        emptyDialog.close();
+    });
 
     emailResultsButton.addEventListener("click", () => {
         emailDialog.showModal();
@@ -345,6 +354,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 emailResultsButton.disabled = false;
                 downloadButton.disabled = false;
                 processButton.disabled = true;
+                source.close();
+            }
+            if (data.status === "empty") {
+                emptyDialog.showModal();
                 source.close();
             }
         }, false);

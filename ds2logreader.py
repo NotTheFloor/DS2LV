@@ -191,3 +191,19 @@ class DS2LogReader:
                 )  # write the filtered lines to the output file
 
         return ""
+
+
+def get_unique_files(dir):
+    unfiltered_files = set(os.listdir(dir))
+    filtered_files = []
+
+    for file in unfiltered_files:
+        if os.path.isdir(os.path.join(dir, file)):
+            filtered_files += [
+                os.path.join(file, f)
+                for f in os.listdir(os.path.join(dir, file))
+            ]
+        else:
+            filtered_files.append(file)
+
+    return set(filtered_files)
