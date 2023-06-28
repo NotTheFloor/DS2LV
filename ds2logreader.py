@@ -125,7 +125,14 @@ class DS2LogReader:
                 filtered_sets.append((meta_data, current_set))
 
         return self.write_sets(
-            title=title, headers=headers, filtered_sets=filtered_sets
+            title=title,
+            headers=headers,
+            filtered_sets=filtered_sets,
+            # filtered_headers=[
+            #     "Time(s)",
+            #     "Ign earliest poss(zwbas)(Grad KW)",
+            #     "Eng spd(nmot_w)(1/min)",
+            # ],
         )
 
     def create_output_folders(self):
@@ -151,11 +158,16 @@ class DS2LogReader:
 
         return ""
 
-    def write_sets(self, title, headers, filtered_sets):
+    def write_sets(self, title, headers, filtered_sets, filtered_headers=[]):
         if not self.output_path_created:
             error_msg = "ERROR: Output folders have not been initialized"
             print(error_msg)
             return error_msg
+
+        if filtered_headers == []:
+            filtered_headers = headers
+
+        header_indices = [headers.index(fh) for fh in filtered_headers]
 
         # write each set of lines to a separate file
         for i, filtered_set in enumerate(filtered_sets):
@@ -171,25 +183,11 @@ class DS2LogReader:
             with open(output_filename, "w", newline="") as output_file:
                 writer = csv.writer(output_file)
                 writer.writerow(title)  # write the title line
-                writer.writerow(headers)  # write the headers line
+                writer.writerow(
+                    filtered_headers
+                )  # write the filtered headers line
                 writer.writerows(
-                    lines
+                    [line[i] for i in header_indices] for line in lines
                 )  # write the filtered lines to the output file
 
         return ""
-
-
-def get_unique_files(dir):
-    unfiltered_files = set(os.listdir(dir))
-    filtered_files = []
-
-    for file in unfiltered_files:
-        if os.path.isdir(os.path.join(dir, file)):
-            filtered_files += [
-                os.path.join(file, f)
-                for f in os.listdir(os.path.join(dir, file))
-            ]
-        else:
-            filtered_files.append(file)
-
-    return set(filtered_files)
