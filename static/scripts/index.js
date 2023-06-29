@@ -1,42 +1,5 @@
-var rcSuccess = function (result) {
-    // Create the request body
-    const requestBody = {
-        'g-recaptcha-response': result,
-    };
-
-    // Validate recap
-    fetch("/recap", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-    })
-        .then((response) => {
-            if (response.ok) {
-                document.getElementById("uploadFileInput").disabled = false;
-                document.getElementById("rc-div").hidden = true;
-
-            } else {
-                // Should do additional error reporting here
-                console.error("Error recap, status code: " + response.status);
-            }
-        })
-        .catch((error) => {
-            console.error("Error:", error);
-        });
-
-};
-
-function formatFileSize(bytes) {
-    if (bytes < 1024) {
-        return bytes + ' Bytes';
-    } else if (bytes < 1048576) {
-        return (bytes / 1024).toFixed(0) + ' KB';
-    } else {
-        return (bytes / 1048576).toFixed(0) + ' MB';
-    }
-}
+import { formatFileSize, rcSuccess } from "./utils.js";
+import { defaultSettings } from "./defaultSettings.js";
 
 document.addEventListener("DOMContentLoaded", (event) => {
     const processButton = document.getElementById("process");
@@ -45,14 +8,63 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const filesList = document.getElementById('filesBody');
     const processStatus = document.getElementById("processStatus");
 
+    const settings = JSON.parse(localStorage.getItem("savesettings") || JSON.stringify(defaultSettings));
+    console.log(settings);
+
     const emailForm = document.querySelector("#emailDialog form");
     const emailResultsButton = document.getElementById("emailResultsButton");
     const emailDialog = document.getElementById("emailDialog");
     const emailCancel = document.getElementById("emailCancel");
 
+    const settingsButton = document.getElementById("settings");
+    const settingsDialog = document.getElementById("settingsDialog");
+    const settingsOkButton = document.getElementById("settingsOkButton");
+    const settingsCancelButton = document.getElementById("settingsCancelButton");
+    const pedalThreshold = document.getElementById("pedalThreshold");
+    const minWOTThreshold = document.getElementById("minWOTThreshold");
+    const saveSettings = document.getElementById("saveSettings");
+    const restoreDefaultsButton = document.getElementById("restoreDefaultsButton");
+
+    pedalThreshold.value = settings.pedal_threshold.toFixed(1);
+    minWOTThreshold.value = settings.min_pedal_for_wot.toFixed(1);
+
+    settingsButton.addEventListener("click", () => {
+        settingsDialog.showModal();
+    });
+
+    settingsCancelButton.addEventListener("click", () => {
+        settingsDialog.close();
+    });
+
+    settingsOkButton.addEventListener("click", () => {
+        settings.pedal_threshold = parseFloat(pedalThreshold.value);
+        settings.min_pedal_for_wot = parseFloat(minWOTThreshold.value);
+        console.log(defaultSettings);
+
+        if (saveSettings.checked)
+            localStorage.setItem("savesettings", JSON.stringify(settings));
+
+        console.log(settings == defaultSettings);
+        console.log(settings === defaultSettings);
+
+        settingsDialog.close();
+    });
+
+    restoreDefaultsButton.addEventListener("click", () => {
+        settings.pedal_threshold = defaultSettings.pedal_threshold;
+        settings.min_pedal_for_wot = defaultSettings.min_pedal_for_wot;
+        pedalThreshold.value = settings.pedal_threshold.toFixed(1);
+        minWOTThreshold.value = settings.min_pedal_for_wot.toFixed(1);
+    });
+
     // Get a reference to the dialog and the submit button
-    var dialog = document.getElementById('feedbackDialog');
+    var feedbackDialog = document.getElementById('feedbackDialog');
     var feedbackSubmit = document.getElementById('feedbackSubmit');
+
+    // Open the dialog when the feedback button is clicked
+    document.getElementById('feedbackButton').onclick = function () {
+        feedbackDialog.showModal();
+    };
 
     var emptyDialog = document.getElementById('emptyDialog');
     const emptyButton = document.getElementById("emptyButton");
@@ -60,15 +72,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
     let openProcessing = 0;
     processStatus.innerText = "Please select files to get started";
 
-
-    // Open the dialog when the feedback button is clicked
-    document.getElementById('feedbackButton').onclick = function () {
-        dialog.showModal();
-    };
-
     // Close the dialog when the cancel button is clicked
-    dialog.querySelector('[value=cancel]').onclick = function () {
-        dialog.close();
+    feedbackDialog.querySelector('[value=cancel]').onclick = function () {
+        feedbackDialog.close();
     };
 
     if (window.location.hostname === "127.0.0.1") {
@@ -169,7 +175,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 .then(response => {
                     if (response.ok) {
                         alert("Thank you for your feedback!");
-                        dialog.close();
+                        feedbackDialog.close();
                     } else {
                         throw new Error("Network response was not ok");
                     }

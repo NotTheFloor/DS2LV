@@ -6,7 +6,7 @@ INPUT_DATE_FORMAT = "%Y-%m-%d_%H.%M.%S"
 OUTPUT_DATE_FORMAT = "%Y-%m-%d_%H.%M.%S"
 OUTPUT_PATH_DATE_FORMAT = "%Y%m%d_%H%M%S"
 PEDAL_THRESHOLD = 80.0
-MIN_PEDAL_FOR_MAX = 99.0
+MIN_PEDAL_FOR_WOT = 99.0
 OUTPUT_FOLDER = "output_temp"
 OUTPUT_PREFIX = "BATCH_"
 
@@ -16,21 +16,33 @@ USE_EXISTING_OUTPUT_PATH = True
 class DS2LogReader:
     def __init__(
         self,
-        input_date_format=INPUT_DATE_FORMAT,
-        output_date_format=OUTPUT_DATE_FORMAT,
-        output_path_date_format=OUTPUT_PATH_DATE_FORMAT,
-        pedal_threshold=PEDAL_THRESHOLD,
-        min_pedal_for_max=MIN_PEDAL_FOR_MAX,
-        output_folder=OUTPUT_FOLDER,
-        output_prefix=OUTPUT_PREFIX,
+        input_date_format=None,
+        output_date_format=None,
+        output_path_date_format=None,
+        pedal_threshold=None,
+        mid_pedal_for_wot=None,
+        output_folder=None,
+        output_prefix=None,
     ):
-        self.input_date_format = input_date_format
-        self.output_date_format = output_date_format
-        self.output_path_date_format = output_path_date_format
-        self.pedal_threshold = pedal_threshold
-        self.min_pedal_for_max = min_pedal_for_max
-        self.output_folder = output_folder
-        self.output_prefix = output_prefix
+        self.input_date_format = (
+            input_date_format if input_date_format else INPUT_DATE_FORMAT
+        )
+        self.output_date_format = (
+            output_date_format if output_date_format else OUTPUT_DATE_FORMAT
+        )
+        self.output_path_date_format = (
+            output_path_date_format
+            if output_path_date_format
+            else OUTPUT_PATH_DATE_FORMAT
+        )
+        self.pedal_threshold = (
+            pedal_threshold if pedal_threshold else PEDAL_THRESHOLD
+        )
+        self.mid_pedal_for_wot = (
+            mid_pedal_for_wot if mid_pedal_for_wot else MIN_PEDAL_FOR_WOT
+        )
+        self.output_folder = output_folder if output_folder else OUTPUT_FOLDER
+        self.output_prefix = output_prefix if output_prefix else OUTPUT_PREFIX
 
         self.batch_start_time = None
         self.output_path_created = False
@@ -94,7 +106,7 @@ class DS2LogReader:
 
                 if float(line[index]) >= self.pedal_threshold:
                     # this ensures its a WOT run - could use some refining because it.. doesn't
-                    if float(line[index]) >= self.min_pedal_for_max:
+                    if float(line[index]) >= self.mid_pedal_for_wot:
                         hits_max_threshold = True
                     if line[gear_index]:
                         # checks for kickdown and if so  ignores initial gear
