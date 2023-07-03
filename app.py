@@ -252,14 +252,21 @@ def index():
     return render_template("index.html")
 
 
-def process_files_background(session_id, out_id):
+def process_files_background(session_id, out_id, settings):
     with app.app_context():
         output_dir = os.path.join(app.config["OUTPUT_TEMP_FOLDER"], session_id)
         upload_dir = os.path.join(app.config["UPLOAD_FOLDER"], session_id)
         archive_dir = os.path.join(app.config["ARCHIVE_FOLDER"], session_id)
         final_dir = os.path.join(app.config["FINAL_FOLDER"], session_id)
 
-        ds2 = ds2logreader.DS2LogReader(output_folder=output_dir)
+        group_wot = settings["group_wot"]
+
+        ds2 = ds2logreader.DS2LogReader(
+            output_folder=output_dir,
+            pedal_threshold=settings["pedal_threshold"],
+            mid_pedal_for_wot=settings["min_pedal_for_wot"],
+            group_wot=group_wot,
+        )
 
         try:
             for filename in os.listdir(upload_dir):
@@ -296,7 +303,8 @@ def process_files_background(session_id, out_id):
                 )
 
             # If empty dir, then no wot runs
-            files_processed = len(ds2logreader.get_unique_files(output_dir))
+            files_processed = ds2logreader.get_unique_files(output_dir)
+            files_processed = len(files_processed)
             if files_processed == 0:
                 sse.publish(
                     {"message": "No wot runs found", "status": "empty"},
@@ -324,14 +332,16 @@ def process_files():
     session_id = session.get("session_id")
     out_id = str(int(time.time()))
     session["out_id"] = out_id
+    settings = request.get_json()["settings"]
     if is_prod:
-        process_files_background(session_id, out_id)
+        process_files_background(session_id, out_id, settings)
     else:
         threading.Thread(
             target=process_files_background,
             args=(
                 session_id,
                 out_id,
+                settings,
             ),
         ).start()
     return Response("Processing started.", 202)

@@ -141,4 +141,19 @@ tr:not(.uploading):not(.error):not(.completed):not(.processed):nth-child(even) {
     display: block;
     margin-top: 30px;
     margin-bottom: 30px;
+    background-color: #4d5aa5;
+}
+
+
+form label {
+    margin-bottom: 10px;
+}
+
+form input[type="number"],
+form input[type="checkbox"] {
+    margin-bottom: 10px;
+}
+
+form button {
+    margin-top: 20px;
 }

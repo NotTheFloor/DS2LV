@@ -9,6 +9,7 @@ PEDAL_THRESHOLD = 80.0
 MIN_PEDAL_FOR_WOT = 99.0
 OUTPUT_FOLDER = "output_temp"
 OUTPUT_PREFIX = "BATCH_"
+GROUP_WOT = False
 
 USE_EXISTING_OUTPUT_PATH = True
 
@@ -23,6 +24,7 @@ class DS2LogReader:
         mid_pedal_for_wot=None,
         output_folder=None,
         output_prefix=None,
+        group_wot=None,
     ):
         self.input_date_format = (
             input_date_format if input_date_format else INPUT_DATE_FORMAT
@@ -43,6 +45,8 @@ class DS2LogReader:
         )
         self.output_folder = output_folder if output_folder else OUTPUT_FOLDER
         self.output_prefix = output_prefix if output_prefix else OUTPUT_PREFIX
+
+        self.group_wot = group_wot if group_wot else GROUP_WOT
 
         self.batch_start_time = None
         self.output_path_created = False
@@ -104,6 +108,9 @@ class DS2LogReader:
                 if line[eth_index]:
                     meta_data["eth"] = str(int(round(float(line[eth_index]))))
 
+                # TODO: Create setting to allow misformed data
+                if line[index] == "":
+                    return ""
                 if float(line[index]) >= self.pedal_threshold:
                     # this ensures its a WOT run - could use some refining because it.. doesn't
                     if float(line[index]) >= self.mid_pedal_for_wot:
@@ -181,6 +188,21 @@ class DS2LogReader:
 
         header_indices = [headers.index(fh) for fh in filtered_headers]
 
+        if not self.group_wot:
+            return self.write_as_individuals(
+                title, filtered_headers, filtered_sets, header_indices
+            )
+
+        else:
+            return self.write_as_one(
+                title, filtered_headers, filtered_sets, header_indices
+            )
+
+        return ""
+
+    def write_as_individuals(
+        self, title, filtered_headers, filtered_sets, header_indices
+    ):
         # write each set of lines to a separate file
         for i, filtered_set in enumerate(filtered_sets):
             meta_data = filtered_set[0]
@@ -204,6 +226,46 @@ class DS2LogReader:
 
         return ""
 
+    def write_as_one(
+        self, title, filtered_headers, filtered_sets, header_indices
+    ):
+        time_index = filtered_headers.index("Time(s)")
+
+        if len(filtered_sets) == 0:
+            return ""
+
+        filename = (
+            filtered_sets[0][0]["set_start"].strftime(self.output_date_format)
+            + "_combined.csv"
+        )
+        output_filename = os.path.join(self.output_path, filename)
+        with open(
+            output_filename,
+            "w",
+            newline="",
+        ) as output_file:
+            writer = csv.writer(output_file)
+            writer.writerow(title)
+            writer.writerow(filtered_headers)
+            end_time = 0.0
+            for filtered_set in filtered_sets:
+                offset = float(filtered_set[1][0][time_index]) - end_time
+                for row in filtered_set[1]:
+                    row[time_index] = str(
+                        round(float(row[time_index]) - offset, 3)
+                    )
+                    end_time = float(row[time_index])
+                    writer.writerow([row[i] for i in header_indices])
+                for i in range(20):
+                    end_time += 0.05
+                    row = [str(round(end_time))] + ["0"] * (
+                        len(filtered_headers) - 1
+                    )
+                    writer.writerow(row)
+                end_time += 0.05
+
+        return ""
+
 
 def get_unique_files(dir):
     unfiltered_files = set(os.listdir(dir))
@@ -218,4 +280,5 @@ def get_unique_files(dir):
         else:
             filtered_files.append(file)
 
-    return set(filtered_files)
+    filtered_files = set(filtered_files)
+    return filtered_files

@@ -8,8 +8,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const filesList = document.getElementById('filesBody');
     const processStatus = document.getElementById("processStatus");
 
-    const settings = JSON.parse(localStorage.getItem("savesettings") || JSON.stringify(defaultSettings));
-    console.log(settings);
+    var settings = JSON.parse(localStorage.getItem("savesettings") || JSON.stringify(defaultSettings));
 
     const emailForm = document.querySelector("#emailDialog form");
     const emailResultsButton = document.getElementById("emailResultsButton");
@@ -25,8 +24,11 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const saveSettings = document.getElementById("saveSettings");
     const restoreDefaultsButton = document.getElementById("restoreDefaultsButton");
 
+    const joinWOTRunsCheckbox = document.getElementById("joinWOTRuns");
+
     pedalThreshold.value = settings.pedal_threshold.toFixed(1);
     minWOTThreshold.value = settings.min_pedal_for_wot.toFixed(1);
+    joinWOTRunsCheckbox.checked = settings.group_wot;
 
     settingsButton.addEventListener("click", () => {
         settingsDialog.showModal();
@@ -39,22 +41,19 @@ document.addEventListener("DOMContentLoaded", (event) => {
     settingsOkButton.addEventListener("click", () => {
         settings.pedal_threshold = parseFloat(pedalThreshold.value);
         settings.min_pedal_for_wot = parseFloat(minWOTThreshold.value);
-        console.log(defaultSettings);
+        settings.group_wot = joinWOTRunsCheckbox.checked;
 
         if (saveSettings.checked)
             localStorage.setItem("savesettings", JSON.stringify(settings));
-
-        console.log(settings == defaultSettings);
-        console.log(settings === defaultSettings);
 
         settingsDialog.close();
     });
 
     restoreDefaultsButton.addEventListener("click", () => {
-        settings.pedal_threshold = defaultSettings.pedal_threshold;
-        settings.min_pedal_for_wot = defaultSettings.min_pedal_for_wot;
+        settings = JSON.parse(JSON.stringify(defaultSettings));
         pedalThreshold.value = settings.pedal_threshold.toFixed(1);
         minWOTThreshold.value = settings.min_pedal_for_wot.toFixed(1);
+        joinWOTRunsCheckbox.checked = settings.group_wot;
     });
 
     // Get a reference to the dialog and the submit button
@@ -357,6 +356,13 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 });
             }
             if (data.status === "complete") {
+                const rows = document.querySelectorAll("#filesBody tr");
+
+                rows.forEach((row) => {
+                    row.classList.remove("completed");
+                    row.classList.add("processed");
+                });
+
                 emailResultsButton.disabled = false;
                 downloadButton.disabled = false;
                 processButton.disabled = true;
@@ -368,7 +374,13 @@ document.addEventListener("DOMContentLoaded", (event) => {
             }
         }, false);
 
-        fetch("/process", { method: "POST" })
+        fetch("/process", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ settings }),
+        })
             .then((response) => {
                 if (response.status !== 202) {
                     console.error(
